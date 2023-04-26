@@ -1,18 +1,64 @@
+from os import path, remove
+from shutil import copyfile
 import pandas as pd
 import xlwings as xw
 import numpy as np
-
-# lt_out_capacidad_enfoque = pd.read_excel("Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx", sheet_name='LT_OUT_CAPACIDAD_ENFOQUE')
-# lt_out_compromiso = pd.read_excel("Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx", sheet_name='LT_OUT_COMPROMISO')
-# lt_in_capacidad = pd.read_excel("Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx", sheet_name='LT_IN_CAPACIDAD')
+from datetime import datetime
 
 def main():
-    ruta = r'D:\Ricardo\Documentos\Actualizar_formatos_priorizacion\Excel_Entrada\COLABORADOR_CURSO.xlsx'
+    fec_hoy = datetime.today()
+    fecha_hoy_format = fec_hoy.strftime('%Y%m%d')
+    ruta1 = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
+    ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada'
+    nombre_archivo = 'PRIORIZACIÓN_PO_{}.xlsx'.format(fecha_hoy_format)
+    ruta_out_f = path.join(ruta_principal,nombre_archivo)
+
+    lt_in_colaborador_curso = leer_excel_simple(ruta1, 'LT_IN_COLABORADOR_CURSO')
+    lt_out_capacidad_enfoque = leer_excel_simple(ruta1, 'LT_OUT_CAPACIDAD_ENFOQUE')
+    lt_out_compromiso = leer_excel_simple(ruta1, 'LT_OUT_COMPROMISO')
+    lt_in_capacidad = leer_excel_simple(ruta1, 'LT_IN_CAPACIDAD')
+    curso_priorizado = leer_excel_simple(ruta1, 'CURSO_PRIORIZADO')
+    capacidad_enfoque = leer_excel_simple(ruta1, 'CAPACIDAD_ENFOQUE')
+    
+    #curso_priorizado
+    lt_in_colaborador_curso.loc[lt_in_colaborador_curso['Columna1'] == '#N/D', 'Columna1'] = pd.NA
+    lt_in_colaborador_curso.dropna(subset=['Columna1'], inplace=True)
+    lt_in_colaborador_curso.reset_index(drop=True, inplace=True)
+
+    lt_in_colaborador_curso.loc[lt_in_colaborador_curso['Columna2'] == '#N/D', 'Columna2'] = pd.NA
+    lt_in_colaborador_curso.dropna(subset=['Columna2'], inplace=True)
+    lt_in_colaborador_curso.reset_index(drop=True, inplace=True)
 
 
-    lt_in_colaborador_curso = leer_excel_simple(ruta, 'LT_IN_COLABORADOR_CURSO')
+    #capacidad_enfoque
+    lt_out_capacidad_enfoque.loc[lt_out_capacidad_enfoque['Columna1'] == '#N/D', 'Columna1'] = pd.NA
+    lt_out_capacidad_enfoque.dropna(subset=['Columna1'], inplace=True)
+    lt_out_capacidad_enfoque.reset_index(drop=True, inplace=True)
 
-    print(lt_in_colaborador_curso)
+    df_2 = pd.merge(lt_out_capacidad_enfoque, lt_in_capacidad, how='left', on='ID_CAPACIDAD')
+    #df_2 = capacidad_enfoque[['MATRICULA', 'CAPACIDAD']]
+    print(df_2)
+
+    #compromiso
+    lt_out_compromiso.loc[lt_out_compromiso['Columna1'] == '#N/D', 'Columna1'] = pd.NA
+    lt_out_compromiso.dropna(subset=['Columna1'], inplace=True)
+    lt_out_compromiso.reset_index(drop=True, inplace=True)
+
+    #excel
+    copia_pega(ruta1, ruta_out_f)
+    df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso[['MATRICULA']], f_ini = 2, c_ini = 2)
+    df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso[['COD_CURSO']], f_ini = 2, c_ini = 6)
+
+    df_a_excel(ruta_out_f, 'CAPACIDAD_ENFOQUE', df_2[['MATRICULA']],f_ini = 2, c_ini = 2)
+    df_a_excel(ruta_out_f, 'CAPACIDAD_ENFOQUE', df_2[['CAPACIDAD']],f_ini = 2, c_ini = 6)
+
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['MATRICULA']],f_ini = 2, c_ini = 2)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['N_COMPROMISO']],f_ini = 2, c_ini = 6)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['ACCION']],f_ini = 2, c_ini = 7)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['RECURSO']],f_ini = 2, c_ini = 8)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['FECHA_INI']],f_ini = 2, c_ini = 9)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['FECHA_FIN']],f_ini = 2, c_ini = 10)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['COMPROMISO']],f_ini = 2, c_ini = 11)
 
 
 def lastRow(ws, col=1):
@@ -59,35 +105,33 @@ def leer_excel_simple(ruta,hoja=None,f_inicio=1, c_inicio=1,is_encuesta=False):
 
     return df
 
+def df_a_excel(ruta, nom_hoja, df, f_ini = 1, c_ini = 1):
+
+    # Abriendo la instancia de Excel
+    app = xw.App(visible=False)
+    app.display_alerts = False
+
+    # Abriendo el libro
+    wb = app.books.open(ruta)
+    ws = wb.sheets(nom_hoja)
+    
+    # Pegando la información
+    ws.range((f_ini,c_ini)).options(index=False, header = False).value = df
+
+    # Guardando y cerrando el archivo
+    wb.save()
+    wb.close()
+    app.kill()
+
+def copia_pega(ruta_origen, ruta_destino):
+# Limpiando el archivo anterior de la carpeta en caso exista
+    try:
+        remove(ruta_destino)
+        print('\nSe removió archivo anterior')
+    except:
+        print('\nNo se encontró archivo anterior')
+        # Copiando los formatos a la carpeta output
+        copyfile(ruta_origen,ruta_destino)
+
 if __name__ == '__main__':
     main()
-# lt_in_colaborador_curso.loc[lt_in_colaborador_curso['Columna2'] == '#N/D', 'Columna2'] = pd.NA
-# lt_in_colaborador_curso.dropna(subset=['Columna2'], inplace=True)
-# lt_in_colaborador_curso.reset_index(drop=True, inplace=True)
-
-# lt_in_colaborador_curso.loc[lt_in_colaborador_curso['Columna4'] == '#N/D', 'Columna4'] = pd.NA
-# lt_in_colaborador_curso.dropna(subset=['Columna4'], inplace=True)
-# lt_in_colaborador_curso.reset_index(drop=True, inplace=True)
-
-# curso_priorizado = lt_in_colaborador_curso[['Columna1']].copy()
-# curso_priorizado.rename(columns={'Columna1': 'Columna2'}, inplace=True)
-
-# curso_priorizado['Columna6'] = lt_in_colaborador_curso['Columna3'].copy()
-
-# # Filtrar y eliminar filas con valor "#N/D" en la columna 2 de "LT_OUT_CAPACIDAD_ENFOQUE"
-# lt_out_capacidad_enfoque.loc[lt_out_capacidad_enfoque['Columna2'] == '#N/D', 'Columna2'] = pd.NA
-# lt_out_capacidad_enfoque.dropna(subset=['Columna2'], inplace=True)
-# lt_out_capacidad_enfoque.reset_index(drop=True, inplace=True)
-
-# # Copiar columna A de "LT_OUT_CAPACIDAD_ENFOQUE" a columna B de "CAPACIDAD_ENFOQUE"
-# capacidad_enfoque = lt_out_capacidad_enfoque[['Columna1']].copy()
-# capacidad_enfoque.rename(columns={'Columna1': 'Columna2'}, inplace=True)
-
-# # Copiar columna C de "LT_OUT_CAPACIDAD_ENFOQUE" a columna G de "CAPACIDAD_ENFOQUE"
-# capacidad_enfoque['Columna7'] = lt_out_capacidad_enfoque['Columna3'].copy()
-
-# # Buscar valores de la columna G de "CAPACIDAD_ENFOQUE" en la columna 2 de "LT_IN_CAPACIDAD"
-# capacidad_enfoque['Columna6'] = capacidad_enfoque['Columna7'].map(lt_in_capacidad.set_index('Columna2')['Columna3'])
-
-
-# curso_priorizado.to_excel('result.xlsx', index=False)
