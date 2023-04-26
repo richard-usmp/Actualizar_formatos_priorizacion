@@ -9,7 +9,7 @@ def main():
     fec_hoy = datetime.today()
     fecha_hoy_format = fec_hoy.strftime('%Y%m%d')
     ruta1 = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
-    ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada'
+    ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
     nombre_archivo = 'PRIORIZACIÓN_PO_{}.xlsx'.format(fecha_hoy_format)
     ruta_out_f = path.join(ruta_principal,nombre_archivo)
 
