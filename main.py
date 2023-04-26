@@ -13,6 +13,8 @@ def main():
     nombre_archivo = 'PRIORIZACIÓN_PO_{}.xlsx'.format(fecha_hoy_format)
     ruta_out_f = path.join(ruta_principal,nombre_archivo)
 
+    colaboradores = leer_excel_simple(ruta1, 'COLABORADORES')
+    cursos = leer_excel_simple(ruta1, 'CURSOS')
     lt_in_colaborador_curso = leer_excel_simple(ruta1, 'LT_IN_COLABORADOR_CURSO')
     lt_out_capacidad_enfoque = leer_excel_simple(ruta1, 'LT_OUT_CAPACIDAD_ENFOQUE')
     lt_out_compromiso = leer_excel_simple(ruta1, 'LT_OUT_COMPROMISO')
@@ -21,44 +23,50 @@ def main():
     capacidad_enfoque = leer_excel_simple(ruta1, 'CAPACIDAD_ENFOQUE')
     
     #curso_priorizado
-    lt_in_colaborador_curso.loc[lt_in_colaborador_curso['Columna1'] == '#N/D', 'Columna1'] = pd.NA
-    lt_in_colaborador_curso.dropna(subset=['Columna1'], inplace=True)
-    lt_in_colaborador_curso.reset_index(drop=True, inplace=True)
+    lt_in_colaborador_curso_filtrado = pd.merge(cursos[['COD_CURSO']], lt_in_colaborador_curso, how='left', on='COD_CURSO')
+    lt_in_colaborador_curso_filtrado = lt_in_colaborador_curso_filtrado.drop_duplicates(subset=['MATRICULA','COD_CURSO', 'N_SESION', 'N_SESION_COMPLETADA', 'FECHA_INICIO', 'FECHA_FIN'])
 
-    lt_in_colaborador_curso.loc[lt_in_colaborador_curso['Columna2'] == '#N/D', 'Columna2'] = pd.NA
-    lt_in_colaborador_curso.dropna(subset=['Columna2'], inplace=True)
-    lt_in_colaborador_curso.reset_index(drop=True, inplace=True)
-
+    lt_in_colaborador_curso_filtrado = pd.merge(colaboradores[['MATRICULA']], lt_in_colaborador_curso_filtrado, how='left', on='MATRICULA')
+    lt_in_colaborador_curso_filtrado = lt_in_colaborador_curso_filtrado.drop_duplicates(subset=['MATRICULA', 'COD_CURSO', 'N_SESION', 'N_SESION_COMPLETADA', 'FECHA_INICIO', 'FECHA_FIN'])
+    lt_in_colaborador_curso_filtrado = lt_in_colaborador_curso_filtrado.dropna(subset=['COD_CURSO'])
 
     #capacidad_enfoque
-    lt_out_capacidad_enfoque.loc[lt_out_capacidad_enfoque['Columna1'] == '#N/D', 'Columna1'] = pd.NA
-    lt_out_capacidad_enfoque.dropna(subset=['Columna1'], inplace=True)
-    lt_out_capacidad_enfoque.reset_index(drop=True, inplace=True)
+    lt_out_capacidad_enfoque_filtrado = pd.merge(colaboradores[['MATRICULA']], lt_out_capacidad_enfoque, how='left', on='MATRICULA')
+    lt_out_capacidad_enfoque_filtrado = lt_out_capacidad_enfoque_filtrado.drop_duplicates(subset=['MATRICULA', 'ID_CAPACIDAD'])
+    lt_out_capacidad_enfoque_filtrado = lt_out_capacidad_enfoque_filtrado.dropna(subset=['ID_CAPACIDAD'])
 
-    df_2 = pd.merge(lt_out_capacidad_enfoque, lt_in_capacidad, how='left', on='ID_CAPACIDAD')
-    #df_2 = capacidad_enfoque[['MATRICULA', 'CAPACIDAD']]
-    print(df_2)
+    df_2 = pd.merge(lt_out_capacidad_enfoque_filtrado, lt_in_capacidad, how='left', on='ID_CAPACIDAD')
 
     #compromiso
-    lt_out_compromiso.loc[lt_out_compromiso['Columna1'] == '#N/D', 'Columna1'] = pd.NA
-    lt_out_compromiso.dropna(subset=['Columna1'], inplace=True)
-    lt_out_compromiso.reset_index(drop=True, inplace=True)
+    lt_out_compromiso_filtrado = pd.merge(colaboradores[['MATRICULA']], lt_out_compromiso, how='left', on='MATRICULA')
+    lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.drop_duplicates(subset=['MATRICULA', 'N_COMPROMISO', 'ACCION', 'RECURSO', 'FECHA_INI', 'FECHA_FIN', 'COMPROMISO'])
+    lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.dropna(subset=['N_COMPROMISO'])
 
-    #excel
+    #actualizar FLAG_PRIORIZACIÓN
+    df_3 = pd.merge(lt_in_colaborador_curso_filtrado[['MATRICULA']], colaboradores, how='left', on='MATRICULA')
+    df_3 = df_3.drop_duplicates(subset=['MATRICULA', 'NOMBRE', 'ROL', 'ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRE_CALIFICADOR', 'ROL_CALIFICADOR', 'CHAPTER', 'FLAG_PRIORIZACIÓN', 'FLAG_EXCLUSIÓN', 'MOTIVO_EXCLUSIÓN'])
+
+    for i, matricula in enumerate(colaboradores['MATRICULA']):
+        if matricula in df_3['MATRICULA'].values:
+            colaboradores.loc[i, 'FLAG_PRIORIZACIÓN'] = 'SI'
+    
+    #crear excel final
     copia_pega(ruta1, ruta_out_f)
-    df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso[['MATRICULA']], f_ini = 2, c_ini = 2)
-    df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso[['COD_CURSO']], f_ini = 2, c_ini = 6)
+    df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso_filtrado[['MATRICULA']], f_ini = 2, c_ini = 2)
+    df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso_filtrado[['COD_CURSO']], f_ini = 2, c_ini = 6)
 
     df_a_excel(ruta_out_f, 'CAPACIDAD_ENFOQUE', df_2[['MATRICULA']],f_ini = 2, c_ini = 2)
     df_a_excel(ruta_out_f, 'CAPACIDAD_ENFOQUE', df_2[['CAPACIDAD']],f_ini = 2, c_ini = 6)
 
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['MATRICULA']],f_ini = 2, c_ini = 2)
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['N_COMPROMISO']],f_ini = 2, c_ini = 6)
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['ACCION']],f_ini = 2, c_ini = 7)
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['RECURSO']],f_ini = 2, c_ini = 8)
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['FECHA_INI']],f_ini = 2, c_ini = 9)
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['FECHA_FIN']],f_ini = 2, c_ini = 10)
-    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso[['COMPROMISO']],f_ini = 2, c_ini = 11)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['MATRICULA']],f_ini = 2, c_ini = 2)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['N_COMPROMISO']],f_ini = 2, c_ini = 6)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['ACCION']],f_ini = 2, c_ini = 7)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['RECURSO']],f_ini = 2, c_ini = 8)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['FECHA_INI']],f_ini = 2, c_ini = 9)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['FECHA_FIN']],f_ini = 2, c_ini = 10)
+    df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['COMPROMISO']],f_ini = 2, c_ini = 11)
+
+    df_a_excel(ruta_out_f, 'COLABORADORES', colaboradores, f_ini = 2, c_ini = 1)
 
 
 def lastRow(ws, col=1):
