@@ -22,6 +22,7 @@ def main():
     ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
     nombre_archivo = 'PRIORIZACIÓN_PO_{}.xlsx'.format(fecha_hoy_format)
     ruta_out_f = path.join(ruta_principal, nombre_archivo)
+    ruta_ba = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Base_activos\Base de Activos 20.04.2023.xlsx'
 
     colaboradores = leer_excel_simple(ruta1, 'COLABORADORES')
     cursos = leer_excel_simple(ruta1, 'CURSOS')
@@ -31,6 +32,7 @@ def main():
     lt_in_capacidad = leer_excel_simple(ruta1, 'LT_IN_CAPACIDAD')
     curso_priorizado = leer_excel_simple(ruta1, 'CURSO_PRIORIZADO')
     capacidad_enfoque = leer_excel_simple(ruta1, 'CAPACIDAD_ENFOQUE')
+    base_activos = leer_excel_simple(ruta_ba, 'BD ACTIVOS')
     
     #curso_priorizado
     lt_in_colaborador_curso_filtrado = pd.merge(cursos[['COD_CURSO']], lt_in_colaborador_curso, how='left', on='COD_CURSO')
@@ -62,6 +64,16 @@ def main():
     for i, matricula in enumerate(colaboradores['MATRICULA']):
         if matricula in df_3['MATRICULA'].values:
             colaboradores.loc[i, 'FLAG_PRIORIZACIÓN'] = 'SI'
+
+    #actualizar FLAG_EXCLUSIÓN
+    df_4 = pd.merge(base_activos[['MATRICULA']], colaboradores, how='left', on='MATRICULA')
+    df_4 = df_4.drop_duplicates(subset=['MATRICULA', 'NOMBRE', 'ROL', 'ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRE_CALIFICADOR', 'ROL_CALIFICADOR', 'CHAPTER', 'FLAG_PRIORIZACIÓN', 'FLAG_EXCLUSIÓN', 'MOTIVO_EXCLUSIÓN'])
+
+    for i, matricula in enumerate(colaboradores['MATRICULA']):
+        if matricula in df_4['MATRICULA'].values:
+            colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'NO'
+        else:
+            colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'SI'
     
     #crear excel final
     copia_pega(ruta1, ruta_out_f)
@@ -87,8 +99,6 @@ def main():
     xlapp.CalculateUntilAsyncQueriesDone()
     wb.Save()
     xlapp.Quit()
-
-
 
 if __name__ == '__main__':
     main()

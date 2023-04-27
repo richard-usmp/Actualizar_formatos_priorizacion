@@ -19,10 +19,12 @@ def avance_medición():
     ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
     nombre_archivo = 'AVANCE_MEDICION_PO_{}.xlsx'.format(fecha_hoy_format)
     ruta_out_f = path.join(ruta_principal, nombre_archivo)
+    ruta_ba = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Base_activos\Base de Activos 20.04.2023.xlsx'
 
     base = leer_excel_simple(ruta1, 'BASE')
     lt_out_comportamiento = leer_excel_simple(ruta1, 'LT_OUT_COMPORTAMIENTO')
     lt_out_capacidad = leer_excel_simple(ruta1, 'LT_OUT_CAPACIDAD')
+    base_activos = leer_excel_simple(ruta_ba, 'BD ACTIVOS')
 
     lt_out_comportamiento = lt_out_comportamiento.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'MATRICULA_CALIFICADO', 'CHAPTER_CALIFICADO'])
     lt_out_capacidad = lt_out_capacidad.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'MATRICULA_CALIFICADO', 'CHAPTER_CALIFICADO'])
@@ -119,6 +121,16 @@ def avance_medición():
                 if matricula in df_1['CONCAT'].values:
                     base.loc[i, 'FLAG_EVALUACION'] = 'SI'
 
+        #actualizar FLAG_EXCLUSIÓN
+        base.rename(columns={'MATRICULA_CALIFICADOR': 'MATRICULA'}, inplace=True)
+        df_4 = pd.merge(base_activos[['MATRICULA']], base, how='left', on='MATRICULA')
+        df_4 = df_4.drop_duplicates(subset=['ESTADO', 'MATRICULA', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA_CALIFICADO', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_AUTOEVALUACION', 'FLAG_EVALUACION', 'FLAG_EXCLUSIÓN'])
+
+        for i, matricula in enumerate(base['MATRICULA']):
+            if matricula in df_4['MATRICULA'].values:
+                base.loc[i, 'FLAG_EXCLUSIÓN'] = 'NO'
+            else:
+                base.loc[i, 'FLAG_EXCLUSIÓN'] = 'SI'
         
         base = base.drop(['CONCAT'], axis=1)
         copia_pega(ruta1, ruta_out_f)
