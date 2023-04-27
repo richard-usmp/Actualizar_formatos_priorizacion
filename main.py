@@ -1,15 +1,24 @@
 from os import path, remove
 from shutil import copyfile
+import time
 import pandas as pd
 import xlwings as xw
 import numpy as np
 from datetime import datetime
 from base import copia_pega, df_a_excel, leer_excel_simple
+import win32com.client
 
 def main():
+    ruta1 = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
+    xlapp = win32com.client.DispatchEx("Excel.Application")
+    wb = xlapp.Workbooks.Open(ruta1)
+    xlapp.Visible = True
+    wb.RefreshAll()
+    xlapp.CalculateUntilAsyncQueriesDone()
+    wb.Save()
+    xlapp.Quit()
     fec_hoy = datetime.today()
     fecha_hoy_format = fec_hoy.strftime('%Y%m%d')
-    ruta1 = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
     ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
     nombre_archivo = 'PRIORIZACIÓN_PO_{}.xlsx'.format(fecha_hoy_format)
     ruta_out_f = path.join(ruta_principal, nombre_archivo)
@@ -71,6 +80,13 @@ def main():
     df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['COMPROMISO']],f_ini = 2, c_ini = 11)
 
     df_a_excel(ruta_out_f, 'COLABORADORES', colaboradores, f_ini = 2, c_ini = 1)
+
+    wb = xlapp.Workbooks.Open(ruta_out_f)
+    xlapp.Visible = True
+    wb.RefreshAll()
+    xlapp.CalculateUntilAsyncQueriesDone()
+    wb.Save()
+    xlapp.Quit()
 
 
 
