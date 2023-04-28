@@ -7,11 +7,21 @@ import numpy as np
 from datetime import datetime
 from base import copia_pega, df_a_excel, leer_excel_simple
 import win32com.client
+from constantes import PATH_BA
 
 def main():
-    ruta1 = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
+    chapter = input(
+        '''
+        PRIORIZACIÓN
+        --------------
+        Chapter:
+
+        '''
+    )
+
+    ruta_plantilla = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
     xlapp = win32com.client.DispatchEx("Excel.Application")
-    wb = xlapp.Workbooks.Open(ruta1)
+    wb = xlapp.Workbooks.Open(ruta_plantilla)
     xlapp.Visible = True
     wb.RefreshAll()
     xlapp.CalculateUntilAsyncQueriesDone()
@@ -20,19 +30,20 @@ def main():
     fec_hoy = datetime.today()
     fecha_hoy_format = fec_hoy.strftime('%Y%m%d')
     ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
-    nombre_archivo = 'PRIORIZACIÓN_PO_{}.xlsx'.format(fecha_hoy_format)
+    nombre_archivo = 'PRIORIZACIÓN_{}_{}.xlsx'.format(chapter, fecha_hoy_format)
     ruta_out_f = path.join(ruta_principal, nombre_archivo)
-    ruta_ba = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Base_activos\Base de Activos 20.04.2023.xlsx'
+    ruta_ba = PATH_BA
 
-    colaboradores = leer_excel_simple(ruta1, 'COLABORADORES')
-    cursos = leer_excel_simple(ruta1, 'CURSOS')
-    lt_in_colaborador_curso = leer_excel_simple(ruta1, 'LT_IN_COLABORADOR_CURSO')
-    lt_out_capacidad_enfoque = leer_excel_simple(ruta1, 'LT_OUT_CAPACIDAD_ENFOQUE')
-    lt_out_compromiso = leer_excel_simple(ruta1, 'LT_OUT_COMPROMISO')
-    lt_in_capacidad = leer_excel_simple(ruta1, 'LT_IN_CAPACIDAD')
-    curso_priorizado = leer_excel_simple(ruta1, 'CURSO_PRIORIZADO')
-    capacidad_enfoque = leer_excel_simple(ruta1, 'CAPACIDAD_ENFOQUE')
+    colaboradores = leer_excel_simple(ruta_plantilla, 'COLABORADORES')
+    cursos = leer_excel_simple(ruta_plantilla, 'CURSOS')
+    lt_in_colaborador_curso = leer_excel_simple(ruta_plantilla, 'LT_IN_COLABORADOR_CURSO')
+    lt_out_capacidad_enfoque = leer_excel_simple(ruta_plantilla, 'LT_OUT_CAPACIDAD_ENFOQUE')
+    lt_out_compromiso = leer_excel_simple(ruta_plantilla, 'LT_OUT_COMPROMISO')
+    lt_in_capacidad = leer_excel_simple(ruta_plantilla, 'LT_IN_CAPACIDAD')
+    curso_priorizado = leer_excel_simple(ruta_plantilla, 'CURSO_PRIORIZADO')
+    capacidad_enfoque = leer_excel_simple(ruta_plantilla, 'CAPACIDAD_ENFOQUE')
     base_activos = leer_excel_simple(ruta_ba, 'BD ACTIVOS')
+    base_activos.rename(columns={'Matrícula': 'MATRICULA'}, inplace=True)
     
     #curso_priorizado
     lt_in_colaborador_curso_filtrado = pd.merge(cursos[['COD_CURSO']], lt_in_colaborador_curso, how='left', on='COD_CURSO')
@@ -76,7 +87,7 @@ def main():
             colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'SI'
     
     #crear excel final
-    copia_pega(ruta1, ruta_out_f)
+    copia_pega(ruta_plantilla, ruta_out_f)
     df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso_filtrado[['MATRICULA']], f_ini = 2, c_ini = 2)
     df_a_excel(ruta_out_f, 'CURSO_PRIORIZADO', lt_in_colaborador_curso_filtrado[['COD_CURSO']], f_ini = 2, c_ini = 6)
 

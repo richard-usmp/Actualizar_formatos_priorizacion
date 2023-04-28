@@ -1,8 +1,13 @@
+from calendar import monthrange
+from datetime import date
 from os import path, remove
+import os
 from shutil import copyfile
 import pandas as pd
 import xlwings as xw
 import numpy as np
+
+PATH_BA = r'\\130.1.22.103\P&A-Interno\08. People Analytics\12. Iniciativas\2. Base de activos\4. OUTPUTS'
 
 def lastRow(ws, col=1):
     lwr_r_cell = ws.cells.last_cell
@@ -75,3 +80,77 @@ def copia_pega(ruta_origen, ruta_destino):
         print('\nNo se encontró archivo anterior')
         # Copiando los formatos a la carpeta output
         copyfile(ruta_origen,ruta_destino)
+
+def leer_ba():
+    d_today = date.today()
+
+    t_today = get_fecha_activos(d_today.year,d_today.month,d_today.day)
+
+    panio = t_today[0]
+    pmes = t_today[1]
+    pdia = t_today[2]-1
+
+    ruta = os.path.join(PATH_BA,completa_ruta(panio,pmes,pdia),'Base de Activos GDH.xlsx')
+    print(ruta)
+    df_activos = leer_excel_simple(ruta,hoja='BD ACTIVOS')
+    df_activos = df_activos[df_activos['Tipo_Preper'].isin(['Proveedor','Orgánico'])]
+    df_activos = df_activos[['Correo electronico','Matrícula']]
+
+    # Renombramos columnas
+    dic_columns = {
+        df_activos.columns[0]: 'CORREO',
+        df_activos.columns[1]: 'MATRICULA'
+    }
+    df_activos.rename(columns=dic_columns, inplace=True)
+
+    # Homologamos Correo y Matricula
+    df_activos['CORREO'] = [ str(x).lower().strip() for x in df_activos['CORREO']]
+    df_activos['MATRICULA'] = [ str(x)[1:] for x in df_activos['MATRICULA']]
+
+    return df_activos
+
+def completa_ruta(anio,mes,dia):
+    dic_meses = {
+        1 : '1. ENE',
+        2 : '2. FEB',
+        3 : '3. MAR',
+        4 : '4. ABR',
+        5 : '5. MAY',
+        6 : '6. JUN',
+        7 : '7. JUL',
+        8 : '8. AGO',
+        9 : '9. SEP',
+        10 : '10. OCT',
+        11 : '11. NOV',
+        12 : '12. DIC'
+    }
+    folder_name_mes = dic_meses.get(mes)
+    folder_name_dia = get_folder_dia(dia)
+    
+    ruta = '{anio_f}\{mes_f}\{dia_f}'.format(anio_f = anio, mes_f = folder_name_mes,dia_f = folder_name_dia)
+    return ruta
+
+def get_fecha_activos(anio,mes,dia):
+    s_dia = get_folder_dia(dia)
+
+    if s_dia == '31':
+        mr = monthrange(anio,mes)
+        dia = mr[1]
+    elif s_dia == '06':
+        dia = 7
+    else:
+        dia = int(dia)
+
+    return (anio,mes,dia)
+
+def get_folder_dia(dia):
+    if dia >= 1 and dia < 7 : 
+        folder_name_dia = '01'
+    elif dia >= 7 and dia < 20:
+        folder_name_dia = '06'
+    elif dia >=20 and dia <27:
+        folder_name_dia = '20'
+    else:
+        folder_name_dia = '31'
+    
+    return folder_name_dia
