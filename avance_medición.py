@@ -46,7 +46,7 @@ def avance_medición():
           2. FLAG_AUTOEVALUACION y PO
           3. FLAG_EVALUACION y otros
           4. FLAG_AUTOEVALUACION y otros
-          5. FLAG_EVALUACION, FLAG_AUTOEVALUACION y po
+          5. FLAG_EVALUACION, FLAG_AUTOEVALUACION y otros
 
           ELIJA UNA OPCIÓN: 
           ''')
@@ -55,7 +55,7 @@ def avance_medición():
         '2':ETipoEva.FLAG_AUTOEVALUACION_y_PO,
         '3':ETipoEva.FLAG_EVALUACION_y_otros,
         '4':ETipoEva.FLAG_AUTOEVALUACION_y_otros,
-        '5':ETipoEva.AUTOEVALUACION_Y_EVALUACION_y_PO
+        '5':ETipoEva.AUTOEVALUACION_Y_EVALUACION_y_otros
     }
     en = dic.get(x_menu)
 
@@ -75,7 +75,7 @@ def avance_medición():
         elif en == ETipoEva.FLAG_AUTOEVALUACION_y_PO:
 
             base['CONCAT'] = base.MATRICULA_CALIFICADO.str.cat(base.MATRICULA_CALIFICADO.str.cat(base.CHAPTER_CALIFICADO, sep=''), sep='')
-            lt_out_capacidad['CONCAT'] = lt_out_capacidad.MATRICULA_CALIFICADO.str.cat(lt_out_capacidad.MATRICULA_CALIFICADO.str.cat(lt_out_capacidad.CHAPTER_CALIFICADO, sep=''), sep='')
+            lt_out_capacidad['CONCAT'] = lt_out_capacidad.MATRICULA_CALIFICADOR.str.cat(lt_out_capacidad.MATRICULA_CALIFICADO.str.cat(lt_out_capacidad.CHAPTER_CALIFICADO, sep=''), sep='')
             
             df_2 = pd.merge(lt_out_capacidad[['CONCAT']], base, how='left', on='CONCAT')
             df_2 = df_2.dropna(subset=['MATRICULA_CALIFICADOR'])
@@ -100,7 +100,7 @@ def avance_medición():
         elif en == ETipoEva.FLAG_AUTOEVALUACION_y_otros:
 
             base['CONCAT'] = base.MATRICULA_CALIFICADO.str.cat(base.MATRICULA_CALIFICADO.str.cat(base.CHAPTER_CALIFICADO, sep=''), sep='')
-            lt_out_comportamiento['CONCAT'] = lt_out_comportamiento.MATRICULA_CALIFICADO.str.cat(lt_out_comportamiento.MATRICULA_CALIFICADO.str.cat(lt_out_comportamiento.CHAPTER_CALIFICADO, sep=''), sep='')
+            lt_out_comportamiento['CONCAT'] = lt_out_comportamiento.MATRICULA_CALIFICADOR.str.cat(lt_out_comportamiento.MATRICULA_CALIFICADO.str.cat(lt_out_comportamiento.CHAPTER_CALIFICADO, sep=''), sep='')
             
             df_4 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_4 = df_4.dropna(subset=['MATRICULA_CALIFICADOR'])
@@ -109,11 +109,11 @@ def avance_medición():
                 if matricula in df_4['CONCAT'].values:
                     base.loc[i, 'FLAG_AUTOEVALUACION'] = 'SI'
         
-        elif en == ETipoEva.AUTOEVALUACION_Y_EVALUACION_y_PO:
+        elif en == ETipoEva.AUTOEVALUACION_Y_EVALUACION_y_otros:
             base['CONCAT'] = base.MATRICULA_CALIFICADO.str.cat(base.MATRICULA_CALIFICADO.str.cat(base.CHAPTER_CALIFICADO, sep=''), sep='')
-            lt_out_capacidad['CONCAT'] = lt_out_capacidad.MATRICULA_CALIFICADO.str.cat(lt_out_capacidad.MATRICULA_CALIFICADO.str.cat(lt_out_capacidad.CHAPTER_CALIFICADO, sep=''), sep='')
+            lt_out_comportamiento['CONCAT'] = lt_out_comportamiento.MATRICULA_CALIFICADOR.str.cat(lt_out_comportamiento.MATRICULA_CALIFICADO.str.cat(lt_out_comportamiento.CHAPTER_CALIFICADO, sep=''), sep='')
             
-            df_2 = pd.merge(lt_out_capacidad[['CONCAT']], base, how='left', on='CONCAT')
+            df_2 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_2 = df_2.dropna(subset=['MATRICULA_CALIFICADOR'])
 
             for i, matricula in enumerate(base['CONCAT']):
@@ -122,9 +122,9 @@ def avance_medición():
 
 
             base['CONCAT'] = base.MATRICULA_CALIFICADOR.str.cat(base.MATRICULA_CALIFICADO.str.cat(base.CHAPTER_CALIFICADO, sep=''), sep='')
-            lt_out_capacidad['CONCAT'] = lt_out_capacidad.MATRICULA_CALIFICADOR.str.cat(lt_out_capacidad.MATRICULA_CALIFICADO.str.cat(lt_out_capacidad.CHAPTER_CALIFICADO, sep=''), sep='')
+            lt_out_comportamiento['CONCAT'] = lt_out_comportamiento.MATRICULA_CALIFICADOR.str.cat(lt_out_comportamiento.MATRICULA_CALIFICADO.str.cat(lt_out_comportamiento.CHAPTER_CALIFICADO, sep=''), sep='')
 
-            df_1 = pd.merge(lt_out_capacidad[['CONCAT']], base, how='left', on='CONCAT')
+            df_1 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_1 = df_1.dropna(subset=['MATRICULA_CALIFICADOR'])
 
             for i, matricula in enumerate(base['CONCAT']):
