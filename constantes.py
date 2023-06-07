@@ -1,1 +1,1 @@
-PATH_BA = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Base_activos\Base de Activos 20.04.2023.xlsx'
+PATH_BA = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Base_activos\Base de Activos 31.05.2023.xlsx'

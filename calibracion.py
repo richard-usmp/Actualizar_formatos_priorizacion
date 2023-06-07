@@ -31,7 +31,7 @@ def calibracion():
     fec_hoy = datetime.today()
     fecha_hoy_format = fec_hoy.strftime('%Y%m%d')
     ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
-    nombre_archivo = 'RESULTADOS_DATA_ENGINEER_{}_POSTCALIBRACION.xlsx'.format(fecha_hoy_format)  
+    nombre_archivo = 'RESULTADOS_{}_{}_POSTCALIBRACION.xlsx'.format(chapter, fecha_hoy_format)
     ruta_out_f = os.path.join(ruta_principal, nombre_archivo)
 
     base_activos = leer_excel_simple(ruta_ba, 'BD ACTIVOS')
@@ -153,7 +153,8 @@ def calibracion():
     df_resultado = pd.merge(df_2, base_activos[['MATRICULA', 'Correo electronico']], on='MATRICULA', how='left')
 
     gs_Calificado = df_resultado.drop_duplicates(subset="NOMBRES_CALIFICADO")
-    gs_Calificado = pd.merge(gs_Calificado[['NOMBRES_CALIFICADO']], base_activos[['Nombre completo', 'Grado Salarial']], on='NOMBRES_CALIFICADO', how='left') #bug
+    base_activos.rename(columns={'Nombre completo': 'NOMBRES_CALIFICADO'}, inplace=True)
+    gs_Calificado = pd.merge(gs_Calificado[['NOMBRES_CALIFICADO']], base_activos[['NOMBRES_CALIFICADO', 'Grado Salarial']], on='NOMBRES_CALIFICADO', how='left') #bug
 
     capacidades = df_resultado.drop(['MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'ROL_CALIFICADOR', 'DESCRIPCION', 'MATRICULA', 'NOMBRES_CALIFICADO', 'Correo electronico', 
                                      'ROL', 'CATEGORIA_CAPACIDAD', 'SUBCATEGORIA_CAPACIDAD', 'N_NIVEL_y', 'NIVEL_y', 'FLAG_CONOCIMIENTO', 'N_NIVELDOMAINEXPERTISE', 
@@ -183,7 +184,7 @@ def calibracion():
     df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELCULTURAL']], f_ini = 2, c_ini = 26)
     df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_x']], f_ini = 2, c_ini = 28)
     df_a_excel(ruta_out_f, 'Resumen TMs', capacidades, f_ini = 5, c_ini = 8)
-    df_a_excel(ruta_out_f, 'Resumen TMs', gs_Calificado[['Grado Salarial']], f_ini = 4, c_ini = 7)
+    df_a_excel(ruta_out_f, 'Resumen TMs', gs_Calificado[['Grado Salarial']], f_ini = 6, c_ini = 7)
 
     #ACTUALIZAR EXCEL TABLAS DINAMICAS Y LISTAS
     xlapp = win32com.client.DispatchEx("Excel.Application")
