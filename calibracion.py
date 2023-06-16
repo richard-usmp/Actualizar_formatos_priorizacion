@@ -8,6 +8,7 @@ import os
 import win32com
 from base import copia_pega, df_a_excel, leer_excel_simple, leer_ba
 from constantes import PATH_BA
+import xlwings as xw
 
 _conn_params = {
     "server": 'PUGINSQLP01',
@@ -133,6 +134,7 @@ def calibracion():
         SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER)
 
         SELECT MATRICULA,
+            MATRICULA_CALIFICADOR,
             N_NIVEL,
             NIVEL
         FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE
@@ -143,24 +145,29 @@ def calibracion():
     # resultados_resultado_comportamiento = select(query2) #QUITAR COMENTARIO DESPUES DE CONECTAR CON LA DB
     # resultados_resultado_expertise = select(query3) #QUITAR COMENTARIO DESPUES DE CONECTAR CON LA DB
 
-    resultados_resultado_comportamiento = resultados_resultado_comportamiento.drop(['ROL', 'MATRICULA_CALIFICADOR', 'ROL_CALIFICADOR'], axis=1)
+    resultados_resultado_comportamiento = resultados_resultado_comportamiento.drop(['ROL', 'ROL_CALIFICADOR'], axis=1)
+    resultados_capacidad_categoria['CONCAT'] = resultados_capacidad_categoria.MATRICULA.str.cat(resultados_capacidad_categoria.MATRICULA_CALIFICADOR, sep='')
+    resultados_resultado_comportamiento['CONCAT'] = resultados_resultado_comportamiento.MATRICULA.str.cat(resultados_resultado_comportamiento.MATRICULA_CALIFICADOR, sep='')
+    resultados_resultado_expertise['CONCAT'] = resultados_resultado_expertise.MATRICULA.str.cat(resultados_resultado_expertise.MATRICULA_CALIFICADOR, sep='')
 
-    df_1 = pd.merge(resultados_resultado_comportamiento, resultados_capacidad_categoria, how='left', on='MATRICULA')
-    df_2 = pd.merge(resultados_resultado_expertise, df_1, how='left', on='MATRICULA')
-    # QUITAR EXCLUIDOS
-    # df_2 = pd.merge(base_activos[['Matrícula']], df_2, how='left', on='MATRICULA')
-    # df_2 = df_2.dropna(subset=['MATRICULA_CALIFICADOR'])
+    df_1 = pd.merge(resultados_resultado_comportamiento, resultados_capacidad_categoria, how='left', on='CONCAT')
+    df_2 = pd.merge(resultados_resultado_expertise, df_1, how='left', on='CONCAT')
+
     df_resultado = pd.merge(df_2, base_activos[['MATRICULA', 'Correo electronico']], on='MATRICULA', how='left')
 
-    gs_Calificado = df_resultado.drop_duplicates(subset="NOMBRES_CALIFICADO")
-    base_activos.rename(columns={'Nombre completo': 'NOMBRES_CALIFICADO'}, inplace=True)
-    gs_Calificado = pd.merge(gs_Calificado[['NOMBRES_CALIFICADO']], base_activos[['NOMBRES_CALIFICADO', 'Grado Salarial']], on='NOMBRES_CALIFICADO', how='left') #bug
-
-    capacidades = df_resultado.drop(['MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'ROL_CALIFICADOR', 'DESCRIPCION', 'MATRICULA', 'NOMBRES_CALIFICADO', 'Correo electronico', 
-                                     'ROL', 'CATEGORIA_CAPACIDAD', 'SUBCATEGORIA_CAPACIDAD', 'N_NIVEL_y', 'NIVEL_y', 'FLAG_CONOCIMIENTO', 'N_NIVELDOMAINEXPERTISE', 
-                                     'N_NIVELRESOL', 'N_NIVELLIDERAZG', 'N_NIVELCULTURAL', 'N_NIVEL_x', 'NIVEL_x'], axis=1)
+    #capacidad cuadro Resumen TMs
+    capacidades = df_resultado.drop(['MATRICULA', 'MATRICULA_CALIFICADOR', 'N_NIVEL_x', 'NIVEL_x', 'CONCAT', 'MATRICULA_x', 'MATRICULA_CALIFICADOR_x', 'Correo electronico', 
+                                     'N_NIVELDOMAINEXPERTISE', 'N_NIVELRESOL', 'N_NIVELLIDERAZG', 'N_NIVELCULTURAL', 'MATRICULA_CALIFICADOR_y', 'NOMBRES_CALIFICADOR', 
+                                     'ROL_CALIFICADOR', 'DESCRIPCION', 'MATRICULA_y', 'NOMBRES_CALIFICADO', 'ROL', 'CATEGORIA_CAPACIDAD', 'SUBCATEGORIA_CAPACIDAD', 
+                                     'N_NIVEL_y', 'NIVEL_y', 'FLAG_CONOCIMIENTO'], axis=1)
     capacidades = capacidades.drop_duplicates(subset = "DESCRIPCION2").T
-    print(gs_Calificado)
+    
+    #LLENADO DE CUADRO RESUMEN TMs
+    resumen_tms = df_resultado.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'ROL'])
+
+    #GS Calificado cuadro Resumen TMs
+    base_activos.rename(columns={'Nombre completo': 'NOMBRES_CALIFICADO'}, inplace=True)
+    gs_Calificado = pd.merge(resumen_tms[['NOMBRES_CALIFICADO']], base_activos[['NOMBRES_CALIFICADO', 'Grado Salarial']], on='NOMBRES_CALIFICADO', how='left')
 
     copia_pega(ruta_plantilla, ruta_out_f)
     df_a_excel(ruta_out_f, 'BASE', df_resultado[['MATRICULA_CALIFICADOR']], f_ini = 2, c_ini = 1)
@@ -175,16 +182,25 @@ def calibracion():
     df_a_excel(ruta_out_f, 'BASE', df_resultado[['DESCRIPCION2']], f_ini = 2, c_ini = 13)
     df_a_excel(ruta_out_f, 'BASE', df_resultado[['CATEGORIA_CAPACIDAD']], f_ini = 2, c_ini = 14)
     df_a_excel(ruta_out_f, 'BASE', df_resultado[['SUBCATEGORIA_CAPACIDAD']], f_ini = 2, c_ini = 15)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_y']], f_ini = 2, c_ini = 17)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['NIVEL_y']], f_ini = 2, c_ini = 18)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['FLAG_CONOCIMIENTO']], f_ini = 2, c_ini = 19)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELDOMAINEXPERTISE']], f_ini = 2, c_ini = 20)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELRESOL']], f_ini = 2, c_ini = 22)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELLIDERAZG']], f_ini = 2, c_ini = 24)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELCULTURAL']], f_ini = 2, c_ini = 26)
-    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_x']], f_ini = 2, c_ini = 28)
-    df_a_excel(ruta_out_f, 'Resumen TMs', capacidades, f_ini = 5, c_ini = 8)
-    df_a_excel(ruta_out_f, 'Resumen TMs', gs_Calificado[['Grado Salarial']], f_ini = 6, c_ini = 7)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_y']], f_ini = 2, c_ini = 18)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['NIVEL_y']], f_ini = 2, c_ini = 19)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['FLAG_CONOCIMIENTO']], f_ini = 2, c_ini = 20)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELDOMAINEXPERTISE']], f_ini = 2, c_ini = 21)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELRESOL']], f_ini = 2, c_ini = 23)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELLIDERAZG']], f_ini = 2, c_ini = 25)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELCULTURAL']], f_ini = 2, c_ini = 27)
+    df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_x']], f_ini = 2, c_ini = 29)
+    df_a_excel(ruta_out_f, 'Resumen TMs', capacidades, f_ini = 5, c_ini = 11)
+    df_a_excel(ruta_out_f, 'Resumen TMs', resumen_tms[['MATRICULA_CALIFICADOR']], f_ini = 6, c_ini = 3)
+    df_a_excel(ruta_out_f, 'Resumen TMs', resumen_tms[['NOMBRES_CALIFICADOR']], f_ini = 6, c_ini = 4)
+    df_a_excel(ruta_out_f, 'Resumen TMs', resumen_tms[['ROL_CALIFICADOR']], f_ini = 6, c_ini = 5)
+    df_a_excel(ruta_out_f, 'Resumen TMs', resumen_tms[['MATRICULA']], f_ini = 6, c_ini = 6)
+    df_a_excel(ruta_out_f, 'Resumen TMs', resumen_tms[['NOMBRES_CALIFICADO']], f_ini = 6, c_ini = 7)
+    df_a_excel(ruta_out_f, 'Resumen TMs', resumen_tms[['ROL']], f_ini = 6, c_ini = 8)
+    df_a_excel(ruta_out_f, 'Resumen TMs', gs_Calificado[['Grado Salarial']], f_ini = 6, c_ini = 9)
+
+    #FALTA: convertir a valores columna de evaluación en Resumen TMs; cambiar matriculas_calificador y nombres_calificador en autoevaluación por el calificador de evaluación; 
+    #colocar las capacidades core, ordenar las tablas dinamicas en orden
 
     #ACTUALIZAR EXCEL TABLAS DINAMICAS Y LISTAS
     xlapp = win32com.client.DispatchEx("Excel.Application")

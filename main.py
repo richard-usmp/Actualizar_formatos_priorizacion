@@ -63,7 +63,7 @@ def main():
     #compromiso
     lt_out_compromiso_filtrado = pd.merge(colaboradores[['MATRICULA']], lt_out_compromiso, how='left', on='MATRICULA')
     lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.drop_duplicates(subset=['MATRICULA', 'N_COMPROMISO', 'ACCION', 'RECURSO', 'FECHA_INI', 'FECHA_FIN', 'COMPROMISO'])
-    lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.dropna(subset=['N_COMPROMISO'])
+    lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.dropna(subset=['COMPROMISO'])
 
     lt_out_compromiso_filtrado['FECHA_INI'] = [x.strftime("%d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_INI']]
     lt_out_compromiso_filtrado['FECHA_FIN'] = [x.strftime("%d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_FIN']]
@@ -82,8 +82,10 @@ def main():
 
     for i, matricula in enumerate(colaboradores['MATRICULA']):
         if matricula in df_4['MATRICULA'].values:
+            colaboradores.loc[i, 'ESTADO'] = 'ACTIVO'
             colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'NO'
         else:
+            colaboradores.loc[i, 'ESTADO'] = 'INACTIVO'
             colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'SI'
     
     #crear excel final
