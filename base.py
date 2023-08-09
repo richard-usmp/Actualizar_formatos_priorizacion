@@ -5,6 +5,7 @@ import os
 from shutil import copyfile
 import pandas as pd
 import xlwings as xw
+from xlwings.constants import DeleteShiftDirection
 import numpy as np
 
 PATH_BA = r'\\130.1.22.103\P&A-Interno\08. People Analytics\12. Iniciativas\2. Base de activos\4. OUTPUTS'
@@ -71,6 +72,24 @@ def df_a_excel(ruta, nom_hoja, df, f_ini = 1, c_ini = 1):
     wb.close()
     app.kill()
 
+def df_a_excel_header(ruta, nom_hoja, df, f_ini = 1, c_ini = 1):
+
+    # Abriendo la instancia de Excel
+    app = xw.App(visible=False)
+    app.display_alerts = False
+
+    # Abriendo el libro
+    wb = app.books.open(ruta)
+    ws = wb.sheets(nom_hoja)
+    
+    # Pegando la información
+    ws.range((f_ini,c_ini)).options(index=False, header = True).value = df
+
+    # Guardando y cerrando el archivo
+    wb.save()
+    wb.close()
+    app.kill()
+
 def copia_pega(ruta_origen, ruta_destino):
 # Limpiando el archivo anterior de la carpeta en caso exista
     try:
@@ -79,7 +98,7 @@ def copia_pega(ruta_origen, ruta_destino):
     except:
         print('\nNo se encontró archivo anterior')
         # Copiando los formatos a la carpeta output
-        copyfile(ruta_origen,ruta_destino)
+    copyfile(ruta_origen,ruta_destino)
 
 def leer_ba():
     d_today = date.today()
@@ -154,3 +173,107 @@ def get_folder_dia(dia):
         folder_name_dia = '31'
     
     return folder_name_dia
+
+def elimina_col_excel_res_lid(ruta, nom_hoja, cant_capa):
+
+    # Abriendo la instancia de Excel
+    app = xw.App(visible=False)
+    app.display_alerts = False
+
+    # Abriendo el libro
+    wb = app.books.open(ruta)
+    ws = wb.sheets(nom_hoja)
+
+    # Eliminando registros
+    col_ini = 4 + cant_capa
+    col_final = col_ini + (19 - cant_capa - 1)
+    letra_col_ini = numero_a_letra_excel(col_ini)
+    letra_col_final = numero_a_letra_excel(col_final)
+    ws.range('{}:{}'.format(letra_col_ini, letra_col_final)).api.Delete(DeleteShiftDirection.xlShiftToLeft)
+
+    # Guardando y cerrando el archivo
+    wb.save()
+    wb.close()
+    app.kill()
+
+def elimina_filas_excel_res_lid(ruta, nom_hoja):
+
+    # Abriendo la instancia de Excel
+    app = xw.App(visible=False)
+    app.display_alerts = False
+
+    # Abriendo el libro
+    wb = app.books.open(ruta)
+    ws = wb.sheets(nom_hoja)
+    
+    # Eliminando registros
+    fila_ini = lastRow(ws, col=2) + 1
+    if lastRow(ws, col=2) > 2: ws.range('{}:{}'.format(fila_ini, 1000)).api.Delete(DeleteShiftDirection.xlShiftUp) 
+
+    # Guardando y cerrando el archivo
+    wb.save()
+    wb.close()
+    app.kill()
+
+def elimina_col_excel(ruta, nom_hoja, cant_capa):
+
+    # Abriendo la instancia de Excel
+    app = xw.App(visible=False)
+    app.display_alerts = False
+
+    # Abriendo el libro
+    wb = app.books.open(ruta)
+    ws = wb.sheets(nom_hoja)
+
+    # Eliminando registros
+    col_ini = 9 + cant_capa + 2
+    col_final = col_ini + (19 - cant_capa - 1)
+    letra_col_ini = numero_a_letra_excel(col_ini)
+    letra_col_final = numero_a_letra_excel(col_final)
+    ws.range('{}:{}'.format(letra_col_ini, letra_col_final)).api.Delete(DeleteShiftDirection.xlShiftToLeft)
+
+    # Guardando y cerrando el archivo
+    wb.save()
+    wb.close()
+    app.kill()
+
+def elimina_filas_excel(ruta, nom_hoja):
+
+    # Abriendo la instancia de Excel
+    app = xw.App(visible=False)
+    app.display_alerts = False
+
+    # Abriendo el libro
+    wb = app.books.open(ruta)
+    ws = wb.sheets(nom_hoja)
+    
+    # Eliminando registros
+    fila_ini = lastRow(ws, col=3) + 1
+    if lastRow(ws, col=3) > 2: ws.range('{}:{}'.format(fila_ini, 1000)).api.Delete(DeleteShiftDirection.xlShiftUp) 
+
+    # Guardando y cerrando el archivo
+    wb.save()
+    wb.close()
+    app.kill()
+
+def numero_a_letra_excel(numero):
+    letras = []
+    while numero > 0:
+        numero -= 1
+        letras.append(chr(ord('A') + numero % 26))
+        numero //= 26
+    letras.reverse()
+    letra_excel = ''.join(letras)
+    return letra_excel
+
+def getColumnName(n):
+    # initialize output string as empty
+    result = ''
+    while n > 0:
+        # find the index of the next letter and concatenate the letter
+        # to the solution
+        # here index 0 corresponds to 'A', and 25 corresponds to 'Z'
+        index = (n - 1) % 26
+        result += chr(index + ord('A'))
+        n = (n - 1) // 26
+    return result[::-1]
