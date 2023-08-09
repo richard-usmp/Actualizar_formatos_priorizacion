@@ -304,17 +304,28 @@ def calibracion():
         diferencias_df = pd.DataFrame(diferencias_list)
 
         for col in diferencias_df.columns[1:]:
-            diferencias_df[col] = diferencias_df[col].apply(apply_logic)
+            if col == 'NivelDomainExpertise':
+                diferencias_df[col] = diferencias_df[col].apply(apply_logic_DE)
+            elif col == 'Análisis y solución de problemas':
+                diferencias_df[col] = diferencias_df[col].apply(apply_logic_analisis)
+            elif col == 'Liderazgo y Comunicación':
+                diferencias_df[col] = diferencias_df[col].apply(apply_logic_liderazgo)
+            elif col == 'Fit Cultural':
+                diferencias_df[col] = diferencias_df[col].apply(apply_logic_fit)
+            elif col == 'Nivel general':
+                diferencias_df[col] = diferencias_df[col].apply(apply_logic_nivel)
+            else:
+                diferencias_df[col] = diferencias_df[col].apply(apply_logic_capacidades)
 
         #diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 1:].apply(lambda row: ' '.join(map(str, row)), axis=1)
-        diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 1:].apply(lambda row: ' '.join(map(str, [val for val in row if val != ''])), axis=1)
+        diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 1:].apply(lambda row: ', '.join(map(str, [val for val in row if val != ''])), axis=1)
         new_df = diferencias_df[['MatriculaCalificado', 'Concatenadas']]
 
         new_df_merge = pd.merge(base_merge, new_df, how='left', on='MatriculaCalificado')
         new_df_merge = new_df_merge.drop_duplicates(subset=['MatriculaCalificador_x', 'NombresCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'TipoEvaluacion_x'])
         #new_df_merge.to_excel('new_df_merge.xlsx')
 
-        df_a_excel(ruta_out_f, 'Resumen TMs', new_df_merge[['Concatenadas']], f_ini = 6, c_ini = 34) #mejorar c_ini
+        df_a_excel(ruta_out_f, 'Resumen TMs', new_df_merge[['Concatenadas']], f_ini = 6, c_ini = 34) #mejorar c_ini; falta borrar alertas de evaluación anterior
 
         #LLENADO RESUMEN LÍDERES
         resumen_tms = leer_excel_simple(ruta_out_f, 'Resumen TMs', f_inicio=5, c_inicio=2)
@@ -343,13 +354,53 @@ def calibracion():
         wb.Save()
         xlapp.Quit()
 
-def apply_logic(valor):
+def apply_logic_capacidades(valor):
     if pd.isna(valor) or valor == 0 or valor == 1:
         return ''
     elif valor > 1:
-        return 'Subió capacidad o DE más de un nivel'
+        return 'Subió capacidad más de un nivel'
     else:
-        return 'Bajó capacidad o DE'
+        return 'Bajó capacidad'
+
+def apply_logic_DE(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió DE más de un nivel'
+    else:
+        return 'Bajó DE'
+    
+def apply_logic_analisis(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió Análisis y solución de problemas más de un nivel'
+    else:
+        return 'Bajó Análisis y solución de problemas'
+    
+def apply_logic_liderazgo(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió Liderazgo y Comunicación más de un nivel'
+    else:
+        return 'Bajó Liderazgo y Comunicación'
+    
+def apply_logic_fit(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió Fit Cultural más de un nivel'
+    else:
+        return 'Bajó Fit Cultural'
+    
+def apply_logic_nivel(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió Nivel general más de un nivel'
+    else:
+        return 'Bajó Nivel general'
     
 def crear_csv(df,file_name):
     file_name = file_name
