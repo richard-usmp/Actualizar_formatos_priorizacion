@@ -7,6 +7,7 @@ import pandas as pd
 import xlwings as xw
 from xlwings.constants import DeleteShiftDirection
 import numpy as np
+import time
 
 PATH_BA = r'\\130.1.22.103\P&A-Interno\08. People Analytics\12. Iniciativas\2. Base de activos\4. OUTPUTS'
 
@@ -65,7 +66,12 @@ def df_a_excel(ruta, nom_hoja, df, f_ini = 1, c_ini = 1):
     ws = wb.sheets(nom_hoja)
     
     # Pegando la información
-    ws.range((f_ini,c_ini)).options(index=False, header = False).value = df
+    # ws.range((f_ini,c_ini)).options(index=False, header = False).value = df
+    print(df)
+    data = df.values
+    for row in range(len(data)):
+        for col in range(len(data[row])):
+            ws.range((f_ini + row, c_ini + col)).value = data[row][col]
 
     # Guardando y cerrando el archivo
     wb.save()
@@ -186,7 +192,7 @@ def elimina_col_excel_res_lid(ruta, nom_hoja, cant_capa):
 
     # Eliminando registros
     col_ini = 4 + cant_capa
-    col_final = col_ini + (19 - cant_capa - 1)
+    col_final = col_ini + (24 - cant_capa - 2)
     letra_col_ini = numero_a_letra_excel(col_ini)
     letra_col_final = numero_a_letra_excel(col_final)
     ws.range('{}:{}'.format(letra_col_ini, letra_col_final)).api.Delete(DeleteShiftDirection.xlShiftToLeft)
@@ -216,6 +222,8 @@ def elimina_filas_excel_res_lid(ruta, nom_hoja):
     app.kill()
 
 def elimina_col_excel(ruta, nom_hoja, cant_capa):
+    print('cant_capa')
+    print(cant_capa)
 
     # Abriendo la instancia de Excel
     app = xw.App(visible=False)
@@ -227,7 +235,7 @@ def elimina_col_excel(ruta, nom_hoja, cant_capa):
 
     # Eliminando registros
     col_ini = 9 + cant_capa + 2
-    col_final = col_ini + (19 - cant_capa - 1)
+    col_final = col_ini + (24 - cant_capa - 1)
     letra_col_ini = numero_a_letra_excel(col_ini)
     letra_col_final = numero_a_letra_excel(col_final)
     ws.range('{}:{}'.format(letra_col_ini, letra_col_final)).api.Delete(DeleteShiftDirection.xlShiftToLeft)

@@ -41,25 +41,29 @@ def calibracion():
     for chapter in chapters1:
         print(chapter)
         ruta_principal = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Salida'
-        nombre_archivo = 'RESULTADOS_{}_{}_PRECALIBRACION.xlsx'.format(chapter, fecha_hoy_format)
+        #nombre_archivo = 'RESULTADOS_{}_{}_PRECALIBRACION.xlsx'.format(chapter, fecha_hoy_format)
+        nombre_archivo = 'RESULTADOS_PRECALIBRACION_{}_20230701.xlsx'.format(chapter)
         ruta_out_f = os.path.join(ruta_principal, nombre_archivo)
         resultados_capacidad_categoria_chapter = resultados_capacidad_categoria[resultados_capacidad_categoria['DESCRIPCION'] == chapter]
         resultados_resultado_comportamiento_chapter = resultados_resultado_comportamiento[resultados_resultado_comportamiento['DESCRIPCION'] == chapter]
         resultados_resultado_expertise_chapter = resultados_resultado_expertise[resultados_resultado_expertise['DESCRIPCION'] == chapter]
 
         query1 = '''
-            DECLARE	@CHAPTER varchar(100) = 'BACKEND JAVA'
+            DECLARE	@CHAPTER varchar(100) = '{}'
 
             DECLARE @PK_CHAPTER INT = (
             SELECT PK_CHAPTER FROM BCP_GDH_PA_DW.PDIGITAL.D_CHAPTER WHERE DESCRIPCION = @CHAPTER)
 
             DECLARE @FECHA_EVA INT = (
-            SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER)
+            SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND CATEGORIA_EVALUACION='OFICIAL')
 
 			DECLARE @FECHA_EVA_PENULTIMA INT = (
-			SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND FK_FECHA<(SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER))
+			SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND FK_FECHA<(SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND CATEGORIA_EVALUACION='OFICIAL') AND CATEGORIA_EVALUACION='OFICIAL')
 
-            ;WITH TCC AS
+			;WITH CT AS(
+				SELECT * FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_FECHA = @FECHA_EVA AND FK_CHAPTER=@PK_CHAPTER
+			),
+			TCC AS
             (
                 SELECT FK_CAPACIDAD,
                     FK_CHAPTER,
@@ -71,19 +75,20 @@ def calibracion():
             )
             SELECT FR.MATRICULA_CALIFICADOR,
                 LID.Nombres + ' ' + LID.Ape_Paterno + ' ' + LID.Ape_Materno AS NOMBRES_CALIFICADOR,
-                FR.ROL_CALIFICADOR,
+                FRCL.DESCRIPCION_ROL ROL_CALIFICADOR,
                 DP.DESCRIPCION,
                 FR.MATRICULA,
                 CAL.Nombres + ' ' + CAL.Ape_Paterno + ' ' + CAL.Ape_Materno AS NOMBRES_CALIFICADO,
-                FR.ROL,
+                FRCC.DESCRIPCION_ROL ROL,
                 DC.DESCRIPCION,
                 TC.CATEGORIA_CAPACIDAD,
                 TC.SUBCATEGORIA_CAPACIDAD,
                 FR.N_NIVEL,
                 FR.NIVEL,
                 FR.FLAG_CONOCIMIENTO,
-				FK_FECHA
+                FR.FK_FECHA
             FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_CAPACIDAD FR
+				INNER JOIN CT ON FR.MATRICULA = CT.MATRICULA
                 LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.D_CHAPTER DP ON FR.FK_CHAPTER=DP.PK_CHAPTER
                 LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.D_CAPACIDAD DC ON FR.FK_CAPACIDAD=DC.PK_CAPACIDAD
                 LEFT JOIN TCC TC ON FR.FK_CAPACIDAD=TC.FK_CAPACIDAD AND
@@ -91,7 +96,9 @@ def calibracion():
                                     FR.ROL=TC.ROL
                 LEFT JOIN BCP_GDH_DW_UGI.UGI.COLABORADORES LID ON FR.MATRICULA_CALIFICADOR=RIGHT(LID.Matricula,6)
                 LEFT JOIN BCP_GDH_DW_UGI.UGI.COLABORADORES CAL ON FR.MATRICULA=RIGHT(CAL.Matricula,6)
-            WHERE FK_FECHA = @FECHA_EVA AND FR.FK_CHAPTER=@PK_CHAPTER or FK_FECHA = @FECHA_EVA_PENULTIMA AND FR.FK_CHAPTER=@PK_CHAPTER;
+                LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.F_ROL_CHAPTER FRCC ON FR.ROL=FRCC.ROL
+	            LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.F_ROL_CHAPTER FRCL ON FR.ROL_CALIFICADOR=FRCL.ROL
+            WHERE (FR.FK_FECHA = @FECHA_EVA AND FR.FK_CHAPTER=@PK_CHAPTER) or (FR.FK_FECHA = @FECHA_EVA_PENULTIMA AND FR.FK_CHAPTER=@PK_CHAPTER);
         '''.format(chapter)
         query2 = '''
             DECLARE	@CHAPTER varchar(100) = '{}'
@@ -103,9 +110,11 @@ def calibracion():
             SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER)
 
             DECLARE @FECHA_EVA_PENULTIMA INT = (
-			SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND FK_FECHA<(SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER))
+			SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND FK_FECHA<(SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER) AND CATEGORIA_EVALUACION='OFICIAL')
 
-            ;WITH T_COMPORTAMIENTO AS
+            ;WITH CT AS(
+				SELECT * FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_FECHA = @FECHA_EVA AND FK_CHAPTER=@PK_CHAPTER
+			), T_COMPORTAMIENTO AS
             (
             SELECT FR.MATRICULA,
                 FR.ROL,
@@ -113,12 +122,13 @@ def calibracion():
                 FR.ROL_CALIFICADOR,
                 DC.DESCRIPCION AS COMPORTAMIENTO,
 				DP.DESCRIPCION,
-                N_NIVEL,
-				FK_FECHA
+                FR.N_NIVEL,
+				FR.FK_FECHA
             FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_COMPORTAMIENTO FR
+				INNER JOIN CT ON FR.MATRICULA = CT.MATRICULA
                 LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.D_COMPORTAMIENTO DC ON FR.FK_COMPORTAMIENTO=DC.PK_COMPORTAMIENTO
                 LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.D_CHAPTER DP ON FR.FK_CHAPTER=DP.PK_CHAPTER
-            WHERE FK_FECHA = @FECHA_EVA AND FR.FK_CHAPTER=@PK_CHAPTER or FK_FECHA = @FECHA_EVA_PENULTIMA AND FR.FK_CHAPTER=@PK_CHAPTER
+            WHERE (FR.FK_FECHA = @FECHA_EVA AND FR.FK_CHAPTER=@PK_CHAPTER) or (FR.FK_FECHA = @FECHA_EVA_PENULTIMA AND FR.FK_CHAPTER=@PK_CHAPTER)
             )
             SELECT MATRICULA,
                 ROL,
@@ -149,59 +159,59 @@ def calibracion():
             DECLARE @FECHA_EVA_PENULTIMA INT = (
 			SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER AND FK_FECHA<(SELECT MAX(FK_FECHA) FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_CHAPTER=@PK_CHAPTER))
 
-            SELECT MATRICULA,
-                MATRICULA_CALIFICADOR,
+			;WITH CT AS(
+				SELECT * FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE WHERE FK_FECHA = @FECHA_EVA AND FK_CHAPTER=@PK_CHAPTER
+			)
+			SELECT RE.MATRICULA,
+                RE.MATRICULA_CALIFICADOR,
 				DP.DESCRIPCION,
-                N_NIVEL,
-                NIVEL,
-				FK_FECHA
-            FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE RE
+                RE.N_NIVEL,
+                RE.NIVEL,
+				RE.FK_FECHA
+			FROM BCP_GDH_PA_DW.PDIGITAL.F_RESULTADO_EXPERTISE RE
+				INNER JOIN CT ON RE.MATRICULA = CT.MATRICULA
 				LEFT JOIN BCP_GDH_PA_DW.PDIGITAL.D_CHAPTER DP ON RE.FK_CHAPTER=DP.PK_CHAPTER
-            WHERE FK_FECHA = @FECHA_EVA AND FK_CHAPTER=@PK_CHAPTER or FK_FECHA = @FECHA_EVA_PENULTIMA AND FK_CHAPTER=@PK_CHAPTER;
+			WHERE (RE.FK_FECHA = @FECHA_EVA AND RE.FK_CHAPTER=@PK_CHAPTER) or (RE.FK_FECHA = @FECHA_EVA_PENULTIMA AND RE.FK_CHAPTER=@PK_CHAPTER);
         '''.format(chapter)
 
         resultados_resultado_comportamiento_chapter = resultados_resultado_comportamiento_chapter.drop(['ROL', 'ROL_CALIFICADOR'], axis=1)
-        resultados_capacidad_categoria_chapter['CONCAT'] = resultados_capacidad_categoria_chapter.MATRICULA.str.cat(resultados_capacidad_categoria_chapter.MATRICULA_CALIFICADOR, sep='')
-        resultados_resultado_comportamiento_chapter['CONCAT'] = resultados_resultado_comportamiento_chapter.MATRICULA.str.cat(resultados_resultado_comportamiento_chapter.MATRICULA_CALIFICADOR, sep='')
-        resultados_resultado_expertise_chapter['CONCAT'] = resultados_resultado_expertise_chapter.MATRICULA.str.cat(resultados_resultado_expertise_chapter.MATRICULA_CALIFICADOR, sep='')
+        resultados_capacidad_categoria_chapter['CONCAT'] = resultados_capacidad_categoria_chapter['MATRICULA'] + resultados_capacidad_categoria_chapter['MATRICULA_CALIFICADOR'] + resultados_capacidad_categoria_chapter['FECHA'].astype(str)
+        resultados_resultado_comportamiento_chapter['CONCAT'] = resultados_resultado_comportamiento_chapter['MATRICULA'] + resultados_resultado_comportamiento_chapter['MATRICULA_CALIFICADOR'] + resultados_resultado_comportamiento_chapter['FECHA'].astype(str)
+        resultados_resultado_expertise_chapter['CONCAT'] = resultados_resultado_expertise_chapter['MATRICULA'] + resultados_resultado_expertise_chapter['MATRICULA_CALIFICADOR'] + resultados_resultado_expertise_chapter['FECHA'].astype(str)
 
         df_1 = pd.merge(resultados_resultado_comportamiento_chapter, resultados_capacidad_categoria_chapter, how='left', on='CONCAT')
         df_2 = pd.merge(resultados_resultado_expertise_chapter, df_1, how='left', on='CONCAT')
 
         df_resultado = pd.merge(df_2, base_activos[['MATRICULA', 'Correo electronico']], on='MATRICULA', how='left')
 
-        df_resultado['EVALUACION'] = ['AUTOEVALUACIÓN' if matricula == m_calificador else 'EVALUACIÓN' for matricula, m_calificador in zip(df_resultado['MATRICULA'], df_resultado['MATRICULA_CALIFICADOR'])]
+        # df_resultado['EVALUACION'] = ['AUTOEVALUACIÓN' if matricula == m_calificador else 'EVALUACIÓN' for matricula, m_calificador in zip(df_resultado['MATRICULA'], df_resultado['MATRICULA_CALIFICADOR'])]
 
-        max_fecha = df_resultado['FECHA'].max()
-        df_resultado['FLAG_NUMBER_EVALUACION'] = ['EVALUACION ANTERIOR' if valor < max_fecha else '' for valor in df_resultado['FECHA']]
+        # max_fecha = df_resultado['FECHA'].max()
+        # df_resultado['FLAG_NUMBER_EVALUACION'] = ['EVALUACION ANTERIOR' if valor < max_fecha else '' for valor in df_resultado['FECHA']]
 
-        df_resultado = df_resultado[~((df_resultado['EVALUACION'] == 'AUTOEVALUACIÓN') & (df_resultado['FLAG_NUMBER_EVALUACION'] == 'EVALUACION ANTERIOR'))]
-        df_resultado.reset_index(drop=True, inplace=True)
+        # df_resultado = df_resultado[~((df_resultado['EVALUACION'] == 'AUTOEVALUACIÓN') & (df_resultado['FLAG_NUMBER_EVALUACION'] == 'EVALUACION ANTERIOR'))]
+        # df_resultado.reset_index(drop=True, inplace=True)
 
-        df_resultado['EVALUACION'] = [valor if flag == 'EVALUACION ANTERIOR' else evaluacion for valor, flag, evaluacion in zip(df_resultado['FLAG_NUMBER_EVALUACION'], df_resultado['FLAG_NUMBER_EVALUACION'], df_resultado['EVALUACION'])]
-
+        # df_resultado['EVALUACION'] = [valor if flag == 'EVALUACION ANTERIOR' else evaluacion for valor, flag, evaluacion in zip(df_resultado['FLAG_NUMBER_EVALUACION'], df_resultado['FLAG_NUMBER_EVALUACION'], df_resultado['EVALUACION'])]
         copia_pega(ruta_plantilla, ruta_out_f)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['MATRICULA_CALIFICADOR']], f_ini = 2, c_ini = 1)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['NOMBRES_CALIFICADOR']], f_ini = 2, c_ini = 2)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['ROL_CALIFICADOR']], f_ini = 2, c_ini = 3)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['DESCRIPCION']], f_ini = 2, c_ini = 4)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['MATRICULA']], f_ini = 2, c_ini = 5)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['NOMBRES_CALIFICADO']], f_ini = 2, c_ini = 6)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['Correo electronico']], f_ini = 2, c_ini = 7)
-        #df_a_excel(ruta_out_f, 'BASE', [['']], f_ini = 2, c_ini = 8)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['ROL']], f_ini = 2, c_ini = 12)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['DESCRIPCION2']], f_ini = 2, c_ini = 13)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['CATEGORIA_CAPACIDAD']], f_ini = 2, c_ini = 14)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['SUBCATEGORIA_CAPACIDAD']], f_ini = 2, c_ini = 15)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_y']], f_ini = 2, c_ini = 18)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['NIVEL_y']], f_ini = 2, c_ini = 19)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['FLAG_CONOCIMIENTO']], f_ini = 2, c_ini = 20)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELDOMAINEXPERTISE']], f_ini = 2, c_ini = 21)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELRESOL']], f_ini = 2, c_ini = 23)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELLIDERAZG']], f_ini = 2, c_ini = 25)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVELCULTURAL']], f_ini = 2, c_ini = 27)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['N_NIVEL_x']], f_ini = 2, c_ini = 29)
-        df_a_excel(ruta_out_f, 'BASE', df_resultado[['EVALUACION']], f_ini = 2, c_ini = 31)
+        df_resultado.to_excel('df_resultado_{}.xlsx'.format(chapter))
+        df1 = df_resultado[['MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'ROL_CALIFICADOR', 'DESCRIPCION', 'MATRICULA', 'NOMBRES_CALIFICADO', 'Correo electronico']]
+        df2 = df_resultado[['ROL', 'DESCRIPCION2', 'CATEGORIA_CAPACIDAD', 'SUBCATEGORIA_CAPACIDAD']]
+        df3 = df_resultado[['N_NIVEL_y', 'NIVEL_y', 'FLAG_CONOCIMIENTO', 'N_NIVELDOMAINEXPERTISE']]
+        df4 = df_resultado[['N_NIVELRESOL']]
+        df5 = df_resultado[['N_NIVELLIDERAZG']]
+        df6 = df_resultado[['N_NIVELCULTURAL']]
+        df7 = df_resultado[['N_NIVEL_x']]
+        df8 = df_resultado[['EVALUACION']]
+
+        df_a_excel(ruta_out_f, 'BASE', df1, f_ini = 2, c_ini = 1)
+        df_a_excel(ruta_out_f, 'BASE', df2, f_ini = 2, c_ini = 12)
+        df_a_excel(ruta_out_f, 'BASE', df3, f_ini = 2, c_ini = 18)
+        df_a_excel(ruta_out_f, 'BASE', df4, f_ini = 2, c_ini = 23)
+        df_a_excel(ruta_out_f, 'BASE', df5, f_ini = 2, c_ini = 25)
+        df_a_excel(ruta_out_f, 'BASE', df6, f_ini = 2, c_ini = 27)
+        df_a_excel(ruta_out_f, 'BASE', df7, f_ini = 2, c_ini = 29)
+        df_a_excel(ruta_out_f, 'BASE', df8, f_ini = 2, c_ini = 31)
 
         #LLENADO DE CUADRO RESUMEN TMs
         base = leer_excel_simple(ruta_out_f, 'BASE')
@@ -243,25 +253,21 @@ def calibracion():
         app.kill()
         
         df_a_excel(ruta_out_f, 'Resumen TMs', capacidades_traspuesta, f_ini = 5, c_ini = 11)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['MatriculaCalificador_x']], f_ini = 6, c_ini = 3)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['NombresCalificador_x']], f_ini = 6, c_ini = 4)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['RolCalificador_x']], f_ini = 6, c_ini = 5)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['MatriculaCalificado']], f_ini = 6, c_ini = 6)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['NombresCalificado_x']], f_ini = 6, c_ini = 7)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['RolCalificado_x']], f_ini = 6, c_ini = 8)
+        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['MatriculaCalificador_x','NombresCalificador_x', 'RolCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'RolCalificado_x']], f_ini = 6, c_ini = 3)
         df_a_excel(ruta_out_f, 'Resumen TMs', gs_Calificado[['Grado Salarial']], f_ini = 6, c_ini = 9)
         df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['TipoEvaluacion_x']], f_ini = 6, c_ini = 10)
+
 
         # Abrir el archivo de Excel
         app = xw.App(visible=False)
         workbook = app.books.open(ruta_out_f)
         worksheet = workbook.sheets['Resumen TMs']
 
-        rango1 = 'K6:AC133'
+        rango1 = 'K6:AH1000'
         valores_copia = worksheet.range(rango1).value
         worksheet.range(rango1).value = valores_copia
 
-        rango2 = 'AE6:AI133'
+        rango2 = 'AJ6:AM1000'
         valores_copia2 = worksheet.range(rango2).value
         worksheet.range(rango2).value = valores_copia2
         
@@ -271,6 +277,8 @@ def calibracion():
         app.kill()
 
         cant_capa = capacidades_no_duplicada['DESCRIPCION2'].count()
+        print('cant_capa')
+        print(cant_capa)
 
         elimina_col_excel(ruta_out_f, 'Resumen TMs', cant_capa)
         elimina_filas_excel(ruta_out_f, 'Resumen TMs')
@@ -281,54 +289,75 @@ def calibracion():
         duplicados = resumen_tms_para_alerta[resumen_tms_para_alerta['MatriculaCalificado'].duplicated(keep=False)]
 
         diferencias_list = []
+        if duplicados.empty:
+            print('Dataframe duplicados vacio, no hay comparacion entre evaluacion nueva vs evaluación anterior.')
+        else:
+            for index, row in duplicados.iterrows():
+                duplicate_rows = resumen_tms_para_alerta[resumen_tms_para_alerta['MatriculaCalificado'] == row['MatriculaCalificado']]
+                if len(duplicate_rows) == 2:
+                    first_row = duplicate_rows.iloc[0]
+                    second_row = duplicate_rows.iloc[1]
 
-        for index, row in duplicados.iterrows():
-            duplicate_rows = resumen_tms_para_alerta[resumen_tms_para_alerta['MatriculaCalificado'] == row['MatriculaCalificado']]
-            if len(duplicate_rows) == 2:
-                first_row = duplicate_rows.iloc[0]
-                second_row = duplicate_rows.iloc[1]
+                    diferencias = {'MatriculaCalificado': row['MatriculaCalificado'], 'TipoEvaluacion': row['TipoEvaluacion']}
+                    for col in resumen_tms_para_alerta.columns:
+                        if col != 'MatriculaCalificado':
+                            if isinstance(first_row[col], (int, float)) and isinstance(second_row[col], (int, float)):
+                                diferencias[col] = second_row[col] - first_row[col]
+                            # else:
+                            #     diferencias[col] = None
 
-                diferencias = {'MatriculaCalificado': row['MatriculaCalificado']}
-                for col in resumen_tms_para_alerta.columns:
-                    if col != 'MatriculaCalificado':
-                        if isinstance(first_row[col], (int, float)) and isinstance(second_row[col], (int, float)):
-                            diferencias[col] = second_row[col] - first_row[col]
-                        else:
-                            diferencias[col] = None
+                    if diferencias:
+                        diferencias_list.append(diferencias)
 
-                #diferencias = {'MatriculaCalificado': row['MatriculaCalificado'],
-                #       **{col: first_row[col] - second_row[col] if isinstance(first_row[col], (int, float)) and isinstance(second_row[col], (int, float)) else None for col in resumen_tms_para_alerta.columns}}
-                if diferencias:
-                    diferencias_list.append(diferencias)
+            diferencias_df = pd.DataFrame(diferencias_list)
 
-        diferencias_df = pd.DataFrame(diferencias_list)
+            for col in diferencias_df.columns[1:]:
+                if col == 'NivelDomainExpertise':
+                    diferencias_df[col] = diferencias_df[col].apply(apply_logic_DE)
+                elif col == 'Análisis y solución de problemas':
+                    diferencias_df[col] = diferencias_df[col].apply(apply_logic_dimension)
+                elif col == 'Liderazgo y Comunicación':
+                    diferencias_df[col] = diferencias_df[col].apply(apply_logic_dimension)
+                elif col == 'Fit Cultural':
+                    diferencias_df[col] = diferencias_df[col].apply(apply_logic_dimension)
+                elif col == 'Nivel general':
+                    diferencias_df[col] = diferencias_df[col].apply(apply_logic_dimension)
+                elif col == 'TipoEvaluacion':
+                    print('TO DO')
+                else:
+                    diferencias_df[col] = diferencias_df[col].apply(apply_logic_capacidades)
 
-        for col in diferencias_df.columns[1:]:
-            if col == 'NivelDomainExpertise':
-                diferencias_df[col] = diferencias_df[col].apply(apply_logic_DE)
-            elif col == 'Análisis y solución de problemas':
-                diferencias_df[col] = diferencias_df[col].apply(apply_logic_analisis)
-            elif col == 'Liderazgo y Comunicación':
-                diferencias_df[col] = diferencias_df[col].apply(apply_logic_liderazgo)
-            elif col == 'Fit Cultural':
-                diferencias_df[col] = diferencias_df[col].apply(apply_logic_fit)
-            elif col == 'Nivel general':
-                diferencias_df[col] = diferencias_df[col].apply(apply_logic_nivel)
-            else:
-                diferencias_df[col] = diferencias_df[col].apply(apply_logic_capacidades)
+            diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 2:].apply(lambda row: '' if all(val == '' for val in row) else ', '.join(set(val for val in row if val != '')), axis=1)
+            new_df = diferencias_df[['MatriculaCalificado','TipoEvaluacion', 'Concatenadas']]
 
-        #diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 1:].apply(lambda row: ' '.join(map(str, row)), axis=1)
-        diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 1:].apply(lambda row: ', '.join(map(str, [val for val in row if val != ''])), axis=1)
-        new_df = diferencias_df[['MatriculaCalificado', 'Concatenadas']]
+            new_df_merge = pd.merge(base_merge, new_df, how='left', on='MatriculaCalificado')
+            new_df_merge = new_df_merge.drop_duplicates(subset=['MatriculaCalificador_x', 'NombresCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'TipoEvaluacion_x'])
+            #new_df_merge.to_excel('new_df_merge.xlsx')
 
-        new_df_merge = pd.merge(base_merge, new_df, how='left', on='MatriculaCalificado')
-        new_df_merge = new_df_merge.drop_duplicates(subset=['MatriculaCalificador_x', 'NombresCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'TipoEvaluacion_x'])
-        #new_df_merge.to_excel('new_df_merge.xlsx')
+            df_a_excel(ruta_out_f, 'Resumen TMs', new_df_merge[['Concatenadas']], f_ini = 6, c_ini = (17+cant_capa)) #
 
-        df_a_excel(ruta_out_f, 'Resumen TMs', new_df_merge[['Concatenadas']], f_ini = 6, c_ini = 34) #mejorar c_ini; falta borrar alertas de evaluación anterior
+            app = xw.App(visible=False)
+            workbook = app.books.open(ruta_out_f)
+            worksheet = workbook.sheets['Resumen TMs']
+
+            starting_cell = 'B6'
+            row_index_eva = worksheet.range(starting_cell).row
+            col_index_eva = worksheet.range(starting_cell).column
+
+            for i, tipo_eva in enumerate(new_df_merge['TipoEvaluacion_x']):
+                if tipo_eva == 'EVALUACION ANTERIOR':
+                    cell = worksheet.range(row_index_eva + i, col_index_eva + 15 + cant_capa)
+                    cell.font.color = (255, 255, 255)
+
+            workbook.save()
+            workbook.close()
+            app.quit()
+            app.kill()
 
         #LLENADO RESUMEN LÍDERES
         resumen_tms = leer_excel_simple(ruta_out_f, 'Resumen TMs', f_inicio=5, c_inicio=2)
+        resumen_tms = resumen_tms[resumen_tms['TipoEvaluacion'] != 'EVALUACION ANTERIOR']
+        base_merge = base_merge[base_merge['TipoEvaluacion_x'] != 'EVALUACION ANTERIOR']
         cant_evaluados = base_merge['NombresCalificador_x'].value_counts().reset_index()
         cant_evaluados.columns = ['NombresCalificador_x', 'Cant_evaluados']
         cant_evaluados = cant_evaluados.sort_values(by='NombresCalificador_x')
@@ -338,12 +367,28 @@ def calibracion():
         df_a_excel(ruta_out_f, 'Resumen Líderes', cant_evaluados[['NombresCalificador_x']], f_ini = 5, c_ini = 2)
         df_a_excel(ruta_out_f, 'Resumen Líderes', cant_evaluados[['Cant_evaluados']], f_ini = 5, c_ini = 3)
         df_a_excel_header(ruta_out_f, 'Resumen Líderes', promedios2, f_ini = 4, c_ini = 4)
-        df_a_excel(ruta_out_f, 'Resumen Líderes', promedios[['NivelDomainExpertise']], f_ini = 5, c_ini = 24)
+        df_a_excel(ruta_out_f, 'Resumen Líderes', promedios[['NivelDomainExpertise']], f_ini = 5, c_ini = 28)
 
         elimina_col_excel_res_lid(ruta_out_f, 'Resumen Líderes', cant_capa)
         elimina_filas_excel_res_lid(ruta_out_f, 'Resumen Líderes')
+        
+        app_lid = xw.App(visible=False)
+        workbook_lid = app_lid.books.open(ruta_out_f)
+        worksheet_lid = workbook_lid.sheets['Resumen Líderes']
 
-        #falta: cambiar colores a los PRINCIPALES en resumen lideres
+        color_lid = (255, 165, 0)
+        starting_cell_lid = 'D4'
+        row_index_lid = worksheet_lid.range(starting_cell_lid).row
+        col_index_lid = worksheet_lid.range(starting_cell_lid).column
+        capacidades_principal_drop = capacidades_principal.drop_duplicates(subset='DESCRIPCION2')
+        for i in range(len(capacidades_principal_drop.index)):
+            cell_lid = worksheet_lid.cells(row_index_lid, col_index_lid + i)
+            cell_lid.color = color_lid
+
+        workbook_lid.save()
+        workbook_lid.close()
+        app_lid.quit()
+        app_lid.kill()
 
         #ACTUALIZAR EXCEL TABLAS DINAMICAS Y LISTAS
         xlapp = win32com.client.DispatchEx("Excel.Application")
@@ -370,41 +415,14 @@ def apply_logic_DE(valor):
     else:
         return 'Bajó DE'
     
-def apply_logic_analisis(valor):
+def apply_logic_dimension(valor):
     if pd.isna(valor) or valor == 0 or valor == 1:
         return ''
     elif valor > 1:
-        return 'Subió Análisis y solución de problemas más de un nivel'
+        return 'Subió dimensión soft más de un nivel'
     else:
-        return 'Bajó Análisis y solución de problemas'
+        return 'Bajó dimensión soft'
     
-def apply_logic_liderazgo(valor):
-    if pd.isna(valor) or valor == 0 or valor == 1:
-        return ''
-    elif valor > 1:
-        return 'Subió Liderazgo y Comunicación más de un nivel'
-    else:
-        return 'Bajó Liderazgo y Comunicación'
-    
-def apply_logic_fit(valor):
-    if pd.isna(valor) or valor == 0 or valor == 1:
-        return ''
-    elif valor > 1:
-        return 'Subió Fit Cultural más de un nivel'
-    else:
-        return 'Bajó Fit Cultural'
-    
-def apply_logic_nivel(valor):
-    if pd.isna(valor) or valor == 0 or valor == 1:
-        return ''
-    elif valor > 1:
-        return 'Subió Nivel general más de un nivel'
-    else:
-        return 'Bajó Nivel general'
-    
-def crear_csv(df,file_name):
-    file_name = file_name
-    df.to_csv(file_name,index=False,sep='|',encoding='UTF-16',header=False,quotechar='`',quoting=csv.QUOTE_NONNUMERIC)
 
 def select(q,t_params=()):
     cnxn = pyodbc.connect(**_conn_params)
