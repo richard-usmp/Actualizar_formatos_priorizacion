@@ -66,12 +66,11 @@ def df_a_excel(ruta, nom_hoja, df, f_ini = 1, c_ini = 1):
     ws = wb.sheets(nom_hoja)
     
     # Pegando la información
-    # ws.range((f_ini,c_ini)).options(index=False, header = False).value = df
-    print(df)
-    data = df.values
-    for row in range(len(data)):
-        for col in range(len(data[row])):
-            ws.range((f_ini + row, c_ini + col)).value = data[row][col]
+    ws.range((f_ini,c_ini)).options(index=False, header = False).value = df
+    # data = df.values
+    # for i in range(len(data)):
+    #     print(data[i])
+    #     ws.range((f_ini + i, c_ini)).value = data[i]
 
     # Guardando y cerrando el archivo
     wb.save()
@@ -222,8 +221,6 @@ def elimina_filas_excel_res_lid(ruta, nom_hoja):
     app.kill()
 
 def elimina_col_excel(ruta, nom_hoja, cant_capa):
-    print('cant_capa')
-    print(cant_capa)
 
     # Abriendo la instancia de Excel
     app = xw.App(visible=False)

@@ -36,8 +36,8 @@ def avance_medición():
     base_activos = leer_excel_simple(ruta_ba, 'BD ACTIVOS')
     base_activos.rename(columns={'Matrícula': 'MATRICULA'}, inplace=True)
 
-    lt_out_comportamiento = lt_out_comportamiento.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'MATRICULA_CALIFICADO', 'CHAPTER_CALIFICADO'])
-    lt_out_capacidad = lt_out_capacidad.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'MATRICULA_CALIFICADO', 'CHAPTER_CALIFICADO'])
+    # lt_out_comportamiento = lt_out_comportamiento.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'MATRICULA_CALIFICADO', 'CHAPTER_CALIFICADO'])
+    # lt_out_capacidad = lt_out_capacidad.drop_duplicates(subset=['MATRICULA_CALIFICADOR', 'MATRICULA_CALIFICADO', 'CHAPTER_CALIFICADO'])
 
     x_menu = input('''
           MENÚ
@@ -68,6 +68,10 @@ def avance_medición():
             df_1 = pd.merge(lt_out_capacidad[['CONCAT']], base, how='left', on='CONCAT')
             df_1 = df_1.dropna(subset=['MATRICULA_CALIFICADOR'])
 
+            conteo = df_1['MATRICULA_CALIFICADO'].value_counts()
+            valores_conteo_4 = conteo[conteo == 4].index
+            df_1 = df_1[df_1['MATRICULA_CALIFICADO'].isin(valores_conteo_4)]
+
             for i, matricula in enumerate(base['CONCAT']):
                 if matricula in df_1['CONCAT'].values:
                     base.loc[i, 'FLAG_EVALUACION'] = 'SI'
@@ -80,6 +84,10 @@ def avance_medición():
             df_2 = pd.merge(lt_out_capacidad[['CONCAT']], base, how='left', on='CONCAT')
             df_2 = df_2.dropna(subset=['MATRICULA_CALIFICADOR'])
 
+            conteo = df_2['MATRICULA_CALIFICADO'].value_counts()
+            valores_conteo_4 = conteo[conteo == 4].index
+            df_2 = df_2[df_2['MATRICULA_CALIFICADO'].isin(valores_conteo_4)]
+
             for i, matricula in enumerate(base['CONCAT']):
                 if matricula in df_2['CONCAT'].values:
                     base.loc[i, 'FLAG_AUTOEVALUACION'] = 'SI'
@@ -91,6 +99,10 @@ def avance_medición():
             
             df_3 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_3 = df_3.dropna(subset=['MATRICULA_CALIFICADOR'])
+
+            conteo = df_3['MATRICULA_CALIFICADO'].value_counts()
+            valores_conteo_3 = conteo[conteo == 3].index
+            df_3 = df_3[df_3['MATRICULA_CALIFICADO'].isin(valores_conteo_3)]
 
             for i, matricula in enumerate(base['CONCAT']):
                 if matricula in df_3['CONCAT'].values:
@@ -105,6 +117,10 @@ def avance_medición():
             df_4 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_4 = df_4.dropna(subset=['MATRICULA_CALIFICADOR'])
 
+            conteo = df_4['MATRICULA_CALIFICADO'].value_counts()
+            valores_conteo_3 = conteo[conteo == 3].index
+            df_4 = df_4[df_4['MATRICULA_CALIFICADO'].isin(valores_conteo_3)]
+
             for i, matricula in enumerate(base['CONCAT']):
                 if matricula in df_4['CONCAT'].values:
                     base.loc[i, 'FLAG_AUTOEVALUACION'] = 'SI'
@@ -115,6 +131,10 @@ def avance_medición():
             
             df_2 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_2 = df_2.dropna(subset=['MATRICULA_CALIFICADOR'])
+
+            conteo = df_2['MATRICULA_CALIFICADO'].value_counts()
+            valores_conteo_3 = conteo[conteo == 3].index
+            df_2 = df_2[df_2['MATRICULA_CALIFICADO'].isin(valores_conteo_3)]
 
             for i, matricula in enumerate(base['CONCAT']):
                 if matricula in df_2['CONCAT'].values:
@@ -127,22 +147,26 @@ def avance_medición():
             df_1 = pd.merge(lt_out_comportamiento[['CONCAT']], base, how='left', on='CONCAT')
             df_1 = df_1.dropna(subset=['MATRICULA_CALIFICADOR'])
 
+            conteo = df_1['MATRICULA_CALIFICADO'].value_counts()
+            valores_conteo_3 = conteo[conteo == 3].index
+            df_1 = df_1[df_1['MATRICULA_CALIFICADO'].isin(valores_conteo_3)]
+
             for i, matricula in enumerate(base['CONCAT']):
                 if matricula in df_1['CONCAT'].values:
                     base.loc[i, 'FLAG_EVALUACION'] = 'SI'
 
         #actualizar FLAG_EXCLUSIÓN
         base.rename(columns={'MATRICULA_CALIFICADO': 'MATRICULA'}, inplace=True)
-        df_4 = pd.merge(base_activos[['MATRICULA']], base, how='left', on='MATRICULA')
-        if 'FLAG_AUTOEVALUACION' in df_4 and 'FLAG_EVALUACION' in df_4:
-            df_4 = df_4.drop_duplicates(subset=['ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_AUTOEVALUACION', 'FLAG_EVALUACION', 'FLAG_EXCLUSIÓN'])
-        elif 'FLAG_EVALUACION' in df_4:
-            df_4 = df_4.drop_duplicates(subset=['ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_EVALUACION', 'FLAG_EXCLUSIÓN'])
-        elif 'FLAG_AUTOEVALUACION' in df_4:
-            df_4 = df_4.drop_duplicates(subset=['ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_AUTOEVALUACION', 'FLAG_EXCLUSIÓN'])
+        df_5 = pd.merge(base_activos[['MATRICULA']], base, how='left', on='MATRICULA')
+        if 'FLAG_AUTOEVALUACION' in df_5 and 'FLAG_EVALUACION' in df_5:
+            df_5 = df_5.drop_duplicates(subset=['ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_AUTOEVALUACION', 'FLAG_EVALUACION', 'FLAG_EXCLUSIÓN'])
+        elif 'FLAG_EVALUACION' in df_5:
+            df_5 = df_5.drop_duplicates(subset=['ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_EVALUACION', 'FLAG_EXCLUSIÓN'])
+        elif 'FLAG_AUTOEVALUACION' in df_5:
+            df_5 = df_5.drop_duplicates(subset=['ESTADO', 'MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'CORREO_CALIFICADOR', 'ROL_CALIFICADOR', 'MATRICULA', 'NOMBRES_CALIFICADO', 'CHAPTER_CALIFICADO', 'ROL_CALIFICADO', 'CORREO_CALIFICADO', 'FLAG_AUTOEVALUACION', 'FLAG_EXCLUSIÓN'])
 
         for i, matricula in enumerate(base['MATRICULA']):
-            if matricula in df_4['MATRICULA'].values:
+            if matricula in df_5['MATRICULA'].values:
                 base.loc[i, 'ESTADO'] = 'ACTIVO'
                 base.loc[i, 'FLAG_EXCLUSIÓN'] = 'NO'
             else:

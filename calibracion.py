@@ -183,18 +183,9 @@ def calibracion():
         df_2 = pd.merge(resultados_resultado_expertise_chapter, df_1, how='left', on='CONCAT')
 
         df_resultado = pd.merge(df_2, base_activos[['MATRICULA', 'Correo electronico']], on='MATRICULA', how='left')
-
-        # df_resultado['EVALUACION'] = ['AUTOEVALUACIÓN' if matricula == m_calificador else 'EVALUACIÓN' for matricula, m_calificador in zip(df_resultado['MATRICULA'], df_resultado['MATRICULA_CALIFICADOR'])]
-
-        # max_fecha = df_resultado['FECHA'].max()
-        # df_resultado['FLAG_NUMBER_EVALUACION'] = ['EVALUACION ANTERIOR' if valor < max_fecha else '' for valor in df_resultado['FECHA']]
-
-        # df_resultado = df_resultado[~((df_resultado['EVALUACION'] == 'AUTOEVALUACIÓN') & (df_resultado['FLAG_NUMBER_EVALUACION'] == 'EVALUACION ANTERIOR'))]
-        # df_resultado.reset_index(drop=True, inplace=True)
-
-        # df_resultado['EVALUACION'] = [valor if flag == 'EVALUACION ANTERIOR' else evaluacion for valor, flag, evaluacion in zip(df_resultado['FLAG_NUMBER_EVALUACION'], df_resultado['FLAG_NUMBER_EVALUACION'], df_resultado['EVALUACION'])]
+        
         copia_pega(ruta_plantilla, ruta_out_f)
-        df_resultado.to_excel('df_resultado_{}.xlsx'.format(chapter))
+        #df_resultado.to_excel('df_resultado_{}.xlsx'.format(chapter))
         df1 = df_resultado[['MATRICULA_CALIFICADOR', 'NOMBRES_CALIFICADOR', 'ROL_CALIFICADOR', 'DESCRIPCION', 'MATRICULA', 'NOMBRES_CALIFICADO', 'Correo electronico']]
         df2 = df_resultado[['ROL', 'DESCRIPCION2', 'CATEGORIA_CAPACIDAD', 'SUBCATEGORIA_CAPACIDAD']]
         df3 = df_resultado[['N_NIVEL_y', 'NIVEL_y', 'FLAG_CONOCIMIENTO', 'N_NIVELDOMAINEXPERTISE']]
@@ -216,10 +207,10 @@ def calibracion():
         #LLENADO DE CUADRO RESUMEN TMs
         base = leer_excel_simple(ruta_out_f, 'BASE')
         base1 = base.drop_duplicates(subset=['MatriculaCalificador', 'NombresCalificador', 'MatriculaCalificado', 'NombresCalificado', 'TipoEvaluacion'])
-        base_solo_eva = base1[base1['TipoEvaluacion'] == 'EVALUACIÓN']
+        base_solo_eva = base1[base1['TipoEvaluacion'] == 'EVALUACION']
 
         base_merge = pd.merge(base1, base_solo_eva, how='left', on='MatriculaCalificado')
-
+        #base_merge.to_excel('base_merge{}.xlsx'.format(chapter))
 
         #GS Calificado cuadro Resumen TMs
         base_activos.rename(columns={'Nombre completo': 'NombresCalificado_x'}, inplace=True)
@@ -253,7 +244,7 @@ def calibracion():
         app.kill()
         
         df_a_excel(ruta_out_f, 'Resumen TMs', capacidades_traspuesta, f_ini = 5, c_ini = 11)
-        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['MatriculaCalificador_x','NombresCalificador_x', 'RolCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'RolCalificado_x']], f_ini = 6, c_ini = 3)
+        df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['MatriculaCalificador_y','NombresCalificador_y', 'RolCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'RolCalificado_x']], f_ini = 6, c_ini = 3)
         df_a_excel(ruta_out_f, 'Resumen TMs', gs_Calificado[['Grado Salarial']], f_ini = 6, c_ini = 9)
         df_a_excel(ruta_out_f, 'Resumen TMs', base_merge[['TipoEvaluacion_x']], f_ini = 6, c_ini = 10)
 
@@ -267,7 +258,7 @@ def calibracion():
         valores_copia = worksheet.range(rango1).value
         worksheet.range(rango1).value = valores_copia
 
-        rango2 = 'AJ6:AM1000'
+        rango2 = 'AJ6:AN1000'
         valores_copia2 = worksheet.range(rango2).value
         worksheet.range(rango2).value = valores_copia2
         
@@ -282,18 +273,29 @@ def calibracion():
 
         elimina_col_excel(ruta_out_f, 'Resumen TMs', cant_capa)
         elimina_filas_excel(ruta_out_f, 'Resumen TMs')
-
+        
+        #ALERTAS
         resumen_tms_para_alerta = leer_excel_simple(ruta_out_f, 'Resumen TMs', f_inicio=5, c_inicio=2)
-        resumen_tms_para_alerta = resumen_tms_para_alerta.drop(['Chapter', 'MatriculaCalificador', 'NombresCalificador', 'RolCalificador', 'NombresCalificado', 'RolCalificado', 
-                                                                'GS Calificado', 'Promedio', 'Alerta', 'Comentario'], axis=1)
-        duplicados = resumen_tms_para_alerta[resumen_tms_para_alerta['MatriculaCalificado'].duplicated(keep=False)]
+        columns_to_drop = ['Chapter', 'MatriculaCalificador', 'NombresCalificador', 'RolCalificador', 'NombresCalificado', 
+                           'RolCalificado', 'GS Calificado', 'Promedio', 'Alerta', 'Comentario']
+        for columna in columns_to_drop:
+            if columna in resumen_tms_para_alerta.columns:
+                resumen_tms_para_alerta = resumen_tms_para_alerta.drop(columna, axis=1)
+            else:
+                print('Error: No existe la columna {} en la hoja Resumen TM.'.format(columna))
+
+        duplicados = resumen_tms_para_alerta[
+            (resumen_tms_para_alerta['TipoEvaluacion'] != 'AUTOEVALUACION') &
+            resumen_tms_para_alerta['MatriculaCalificado'].duplicated(keep=False)
+        ]
 
         diferencias_list = []
         if duplicados.empty:
             print('Dataframe duplicados vacio, no hay comparacion entre evaluacion nueva vs evaluación anterior.')
         else:
             for index, row in duplicados.iterrows():
-                duplicate_rows = resumen_tms_para_alerta[resumen_tms_para_alerta['MatriculaCalificado'] == row['MatriculaCalificado']]
+                duplicate_rows = resumen_tms_para_alerta[(resumen_tms_para_alerta['MatriculaCalificado'] == row['MatriculaCalificado']) & (resumen_tms_para_alerta['TipoEvaluacion'] != 'AUTOEVALUACION')]
+                duplicate_rows = duplicate_rows.sort_values(by='TipoEvaluacion')
                 if len(duplicate_rows) == 2:
                     first_row = duplicate_rows.iloc[0]
                     second_row = duplicate_rows.iloc[1]
@@ -302,14 +304,13 @@ def calibracion():
                     for col in resumen_tms_para_alerta.columns:
                         if col != 'MatriculaCalificado':
                             if isinstance(first_row[col], (int, float)) and isinstance(second_row[col], (int, float)):
-                                diferencias[col] = second_row[col] - first_row[col]
-                            # else:
-                            #     diferencias[col] = None
+                                diferencias[col] = first_row[col] - second_row[col]
 
                     if diferencias:
                         diferencias_list.append(diferencias)
 
             diferencias_df = pd.DataFrame(diferencias_list)
+            diferencias_df_new = diferencias_df.copy()
 
             for col in diferencias_df.columns[1:]:
                 if col == 'NivelDomainExpertise':
@@ -327,14 +328,23 @@ def calibracion():
                 else:
                     diferencias_df[col] = diferencias_df[col].apply(apply_logic_capacidades)
 
+            for fila in range(len(diferencias_df_new.index)):
+                cont=0
+                for columnas in range(2,cant_capa):
+                    if diferencias_df_new.iloc[fila, columnas] > 0: cont += 1
+                if cont >= 4: diferencias_df_new.at[fila, 'Concatenadas_2'] = 'Subió 4 o más capacidades'
+
             diferencias_df['Concatenadas'] = diferencias_df.iloc[:, 2:].apply(lambda row: '' if all(val == '' for val in row) else ', '.join(set(val for val in row if val != '')), axis=1)
-            new_df = diferencias_df[['MatriculaCalificado','TipoEvaluacion', 'Concatenadas']]
+            new_df = diferencias_df[['MatriculaCalificado', 'TipoEvaluacion', 'Concatenadas']]
+            new_df = pd.merge(new_df, diferencias_df_new, how='left', on=['MatriculaCalificado', 'TipoEvaluacion'])
+            new_df['Concatenadas_final'] = new_df['Concatenadas'].fillna('') + (', ' + new_df['Concatenadas_2']).fillna('')
+            new_df['Concatenadas_final'] = new_df['Concatenadas_final'].apply(lambda x: x.lstrip(', ')) #si sale algo mal en alertas, comentar esta fila
 
             new_df_merge = pd.merge(base_merge, new_df, how='left', on='MatriculaCalificado')
             new_df_merge = new_df_merge.drop_duplicates(subset=['MatriculaCalificador_x', 'NombresCalificador_x', 'MatriculaCalificado', 'NombresCalificado_x', 'TipoEvaluacion_x'])
-            #new_df_merge.to_excel('new_df_merge.xlsx')
+            new_df_merge.loc[new_df_merge['TipoEvaluacion_x'] == 'AUTOEVALUACION', 'Concatenadas'] = ''
 
-            df_a_excel(ruta_out_f, 'Resumen TMs', new_df_merge[['Concatenadas']], f_ini = 6, c_ini = (17+cant_capa)) #
+            df_a_excel(ruta_out_f, 'Resumen TMs', new_df_merge[['Concatenadas_final']], f_ini = 6, c_ini = (17+cant_capa))
 
             app = xw.App(visible=False)
             workbook = app.books.open(ruta_out_f)
@@ -356,15 +366,15 @@ def calibracion():
 
         #LLENADO RESUMEN LÍDERES
         resumen_tms = leer_excel_simple(ruta_out_f, 'Resumen TMs', f_inicio=5, c_inicio=2)
-        resumen_tms = resumen_tms[resumen_tms['TipoEvaluacion'] != 'EVALUACION ANTERIOR']
-        base_merge = base_merge[base_merge['TipoEvaluacion_x'] != 'EVALUACION ANTERIOR']
-        cant_evaluados = base_merge['NombresCalificador_x'].value_counts().reset_index()
-        cant_evaluados.columns = ['NombresCalificador_x', 'Cant_evaluados']
-        cant_evaluados = cant_evaluados.sort_values(by='NombresCalificador_x')
+        resumen_tms = resumen_tms[(resumen_tms['TipoEvaluacion'] != 'EVALUACION ANTERIOR') & (resumen_tms['TipoEvaluacion'] != 'AUTOEVALUACION')]
+        base_merge = base_merge[(base_merge['TipoEvaluacion_x'] != 'EVALUACION ANTERIOR') & (base_merge['TipoEvaluacion_x'] != 'AUTOEVALUACION')]
+        cant_evaluados = base_merge['NombresCalificador_y'].value_counts().reset_index()
+        cant_evaluados.columns = ['NombresCalificador_y', 'Cant_evaluados']
+        cant_evaluados = cant_evaluados.sort_values(by='NombresCalificador_y')
         promedios = resumen_tms.groupby('NombresCalificador').mean()
         promedios2 = promedios.drop(['Promedio','Comentario','NivelDomainExpertise','Análisis y solución de problemas','Liderazgo y Comunicación','Fit Cultural','Nivel general'], axis=1)
 
-        df_a_excel(ruta_out_f, 'Resumen Líderes', cant_evaluados[['NombresCalificador_x']], f_ini = 5, c_ini = 2)
+        df_a_excel(ruta_out_f, 'Resumen Líderes', cant_evaluados[['NombresCalificador_y']], f_ini = 5, c_ini = 2)
         df_a_excel(ruta_out_f, 'Resumen Líderes', cant_evaluados[['Cant_evaluados']], f_ini = 5, c_ini = 3)
         df_a_excel_header(ruta_out_f, 'Resumen Líderes', promedios2, f_ini = 4, c_ini = 4)
         df_a_excel(ruta_out_f, 'Resumen Líderes', promedios[['NivelDomainExpertise']], f_ini = 5, c_ini = 28)

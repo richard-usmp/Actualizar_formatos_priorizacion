@@ -18,7 +18,7 @@ def main():
 
         '''
     )
-
+    fecha_filtro = '29/08/2023' #CAMBIAR EN BASE A LO NECESARIO, DEJAR EN BLANCO SI SE DESEA COGERTODO
     ruta_plantilla = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\PRUEBA_PLANTILLA_PRIORIZACIÓN.xlsx'
     xlapp = win32com.client.DispatchEx("Excel.Application")
     wb = xlapp.Workbooks.Open(ruta_plantilla)
@@ -44,6 +44,18 @@ def main():
     capacidad_enfoque = leer_excel_simple(ruta_plantilla, 'CAPACIDAD_ENFOQUE')
     base_activos = leer_excel_simple(ruta_ba, 'BD ACTIVOS')
     base_activos.rename(columns={'Matrícula': 'MATRICULA'}, inplace=True)
+
+    #filtros por fecha
+    if fecha_filtro != '':
+        lt_out_compromiso['Created'] = pd.to_datetime(lt_out_compromiso['Created'], format='%d/%m/%Y')
+        lt_out_capacidad_enfoque['Created'] = pd.to_datetime(lt_out_capacidad_enfoque['Created'], format='%d/%m/%Y')
+        lt_in_colaborador_curso['Created'] = pd.to_datetime(lt_in_colaborador_curso['Created'], format='%d/%m/%Y')
+
+        fecha_filtro_format = pd.to_datetime(fecha_filtro, format='%d/%m/%Y')
+
+        lt_out_compromiso = lt_out_compromiso[lt_out_compromiso['Created'] >= fecha_filtro_format]
+        lt_out_capacidad_enfoque = lt_out_capacidad_enfoque[lt_out_capacidad_enfoque['Created'] >= fecha_filtro_format]
+        lt_in_colaborador_curso = lt_in_colaborador_curso[lt_in_colaborador_curso['Created'] >= fecha_filtro_format]
     
     #curso_priorizado
     lt_in_colaborador_curso_filtrado = pd.merge(cursos[['COD_CURSO']], lt_in_colaborador_curso, how='left', on='COD_CURSO')
