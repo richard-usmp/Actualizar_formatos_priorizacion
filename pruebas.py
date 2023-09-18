@@ -1,42 +1,36 @@
-import pandas as pd
-from base import leer_excel_simple
+import sys
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
 
-# Leer el archivo de Excel
-ruta_BD = 'D:\BCP Effio\Documents\Actualizar_formatos_priorizacion\Excel_Entrada\Base de datos.xlsx'
-df = leer_excel_simple(ruta_BD, 'Hoja1')
+class MyForm(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-# Obtener la lista de chapters únicos
-chapters = df['DESCRIPCION'].unique()
+        self.setWindowTitle("Formulario PySide6")
+        self.setGeometry(100, 100, 400, 200)
 
-# Generar un archivo de Excel separado por cada chapter
-for chapter in chapters:
-    # Filtrar el dataframe por el chapter actual
-    df_chapter = df[df['DESCRIPCION'] == chapter]
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
 
-    # Crear un nuevo archivo de Excel para el chapter actual
-    nombre_archivo = f'{chapter}.xlsx'
-    writer = pd.ExcelWriter(nombre_archivo)
-    df_chapter.to_excel(writer, sheet_name='Sheet1', index=False)
-    writer.save()
+        layout = QVBoxLayout()
 
-    print(f'Se ha generado el archivo de Excel para el chapter "{chapter}".')
+        label = QLabel("Ingresa tu nombre:")
+        layout.addWidget(label)
 
-print('Se han generado todos los archivos de Excel por chapter.')
+        self.text_input = QLineEdit()
+        layout.addWidget(self.text_input)
 
-import pandas as pd
+        submit_button = QPushButton("Enviar")
+        submit_button.clicked.connect(self.on_submit)
+        layout.addWidget(submit_button)
 
-# Lee el archivo de Excel y especifica que la hoja se encuentra en la fila 5 y columna 2
-ruta_archivo = 'Ruta/del/archivo/Resumen TMs.xlsx'
-nombre_hoja = 'NombreDeLaHoja'
-fila_inicio = 5
-columna_inicio = 'B'  # Columna 'B' es la columna 2
+        central_widget.setLayout(layout)
 
-# Lee el contenido de la hoja de Excel a partir de la fila y columna especificadas
-data_frame = pd.read_excel(ruta_archivo, sheet_name=nombre_hoja, header=None, skiprows=range(0, fila_inicio-1), usecols=columna_inicio)
+    def on_submit(self):
+        user_input = self.text_input.text()
+        print(f"Nombre ingresado: {user_input}")
 
-# Ahora, si deseas guardar estos datos en un nuevo archivo Excel:
-ruta_nuevo_archivo = 'Ruta/del/archivo/NuevoResumen.xlsx'
-nombre_nueva_hoja = 'NuevaHoja'
-
-data_frame.to_excel(ruta_nuevo_archivo, sheet_name=nombre_nueva_hoja, index=False, header=False)
-
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MyForm()
+    window.show()
+    sys.exit(app.exec_())
