@@ -74,7 +74,7 @@ def priorizacion():
 
     #compromiso
     lt_out_compromiso_filtrado = pd.merge(colaboradores[['MATRICULA']], lt_out_compromiso, how='left', on='MATRICULA')
-    lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.drop_duplicates(subset=['MATRICULA', 'N_COMPROMISO', 'ACCION', 'RECURSO', 'FECHA_INI', 'FECHA_FIN', 'COMPROMISO'])
+    #lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.drop_duplicates(subset=['MATRICULA', 'N_COMPROMISO', 'ACCION', 'RECURSO', 'FECHA_INI', 'FECHA_FIN', 'COMPROMISO'])
     lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.dropna(subset=['COMPROMISO'])
 
     lt_out_compromiso_filtrado['FECHA_INI'] = [x.strftime("%d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_INI']]
@@ -118,6 +118,7 @@ def priorizacion():
 
     df_a_excel(ruta_out_f, 'COLABORADORES', colaboradores, f_ini = 2, c_ini = 1)
 
+    xlapp = win32com.client.DispatchEx("Excel.Application")
     wb = xlapp.Workbooks.Open(ruta_out_f)
     xlapp.Visible = True
     wb.RefreshAll()

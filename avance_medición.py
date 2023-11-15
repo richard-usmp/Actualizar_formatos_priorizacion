@@ -177,6 +177,7 @@ def avance_medición():
         copia_pega(ruta_plantilla, ruta_out_f)
         df_a_excel(ruta_out_f, 'BASE', base, f_ini = 2)
 
+        xlapp = win32com.client.DispatchEx("Excel.Application")
         wb = xlapp.Workbooks.Open(ruta_out_f)
         xlapp.Visible = True
         wb.RefreshAll()

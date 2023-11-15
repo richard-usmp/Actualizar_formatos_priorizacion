@@ -282,3 +282,27 @@ def getColumnName(n):
         result += chr(index + ord('A'))
         n = (n - 1) // 26
     return result[::-1]
+
+def apply_logic_capacidades(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió capacidad más de un nivel'
+    else:
+        return 'Bajó capacidad'
+
+def apply_logic_DE(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió DE más de un nivel'
+    else:
+        return 'Bajó DE'
+    
+def apply_logic_dimension(valor):
+    if pd.isna(valor) or valor == 0 or valor == 1:
+        return ''
+    elif valor > 1:
+        return 'Subió dimensión soft más de un nivel'
+    else:
+        return 'Bajó dimensión soft'
