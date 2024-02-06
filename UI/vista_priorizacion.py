@@ -121,11 +121,13 @@ class Window_priorizacion(QMainWindow):
 
         #compromiso
         lt_out_compromiso_filtrado = pd.merge(colaboradores[['MATRICULA']], lt_out_compromiso, how='left', on='MATRICULA')
-        #lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.drop_duplicates(subset=['MATRICULA', 'N_COMPROMISO', 'ACCION', 'RECURSO', 'FECHA_INI', 'FECHA_FIN', 'COMPROMISO'])
+        lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.drop_duplicates(subset=['MATRICULA', 'N_COMPROMISO', 'ACCION', 'RECURSO', 'FECHA_INI', 'FECHA_FIN', 'COMPROMISO'])
         lt_out_compromiso_filtrado = lt_out_compromiso_filtrado.dropna(subset=['COMPROMISO'])
 
-        lt_out_compromiso_filtrado['FECHA_INI'] = [x.strftime("%d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_INI']]
-        lt_out_compromiso_filtrado['FECHA_FIN'] = [x.strftime("%d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_FIN']]
+        # lt_out_compromiso_filtrado['FECHA_INI'] = [x.strftime("%-d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_INI']]
+        # lt_out_compromiso_filtrado['FECHA_FIN'] = [x.strftime("%-d/%m/%Y") for x in lt_out_compromiso_filtrado['FECHA_FIN']]
+        lt_out_compromiso_filtrado['FECHA_INI'] = [x.strftime("%x") for x in lt_out_compromiso_filtrado['FECHA_INI']]
+        lt_out_compromiso_filtrado['FECHA_FIN'] = [x.strftime("%x") for x in lt_out_compromiso_filtrado['FECHA_FIN']]
 
         #actualizar FLAG_PRIORIZACIÓN
         df_3 = pd.merge(lt_in_colaborador_curso_filtrado[['MATRICULA']], colaboradores, how='left', on='MATRICULA')
@@ -142,7 +144,7 @@ class Window_priorizacion(QMainWindow):
         for i, matricula in enumerate(colaboradores['MATRICULA']):
             if matricula in df_4['MATRICULA'].values:
                 colaboradores.loc[i, 'ESTADO'] = 'ACTIVO'
-                colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'NO'
+                #colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'NO'
             else:
                 colaboradores.loc[i, 'ESTADO'] = 'INACTIVO'
                 colaboradores.loc[i, 'FLAG_EXCLUSIÓN'] = 'SI'
@@ -162,6 +164,7 @@ class Window_priorizacion(QMainWindow):
         df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['FECHA_INI']],f_ini = 2, c_ini = 9)
         df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['FECHA_FIN']],f_ini = 2, c_ini = 10)
         df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['COMPROMISO']],f_ini = 2, c_ini = 11)
+        df_a_excel(ruta_out_f, 'COMPROMISO', lt_out_compromiso_filtrado[['ESTADO']],f_ini = 2, c_ini = 14)
 
         df_a_excel(ruta_out_f, 'COLABORADORES', colaboradores, f_ini = 2, c_ini = 1)
 

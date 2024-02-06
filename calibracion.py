@@ -355,6 +355,7 @@ def calibracion():
         cant_evaluados.columns = ['NombresCalificador_y', 'Cant_evaluados']
         cant_evaluados = cant_evaluados.sort_values(by='NombresCalificador_y')
         resumen_tms = resumen_tms.drop(['Chapter', 'MatriculaCalificador', 'RolCalificador', 'MatriculaCalificado', 'NombresCalificado', 'RolCalificado', 'GS Calificado', 'TipoEvaluacion', 'Alerta', 'Comentario'], axis=1)
+        resumen_tms['NombresCalificador'] = pd.to_numeric(resumen_tms['NombresCalificador'], errors='coerce')
         promedios = resumen_tms.groupby('NombresCalificador').mean()
         promedios2 = promedios.drop(['Promedio','NivelDomainExpertise','Análisis y solución de problemas','Liderazgo y Comunicación','Fit Cultural','Nivel general'], axis=1)
 
